@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(EuropaHLSL)
+project(EuropaGLSL)
 
-file(GLOB_RECURSE SH_SRC src/*.hlsl src/*.hlsli)
+file(GLOB_RECURSE SH_SRC src/*.frag src/*.vert)
 
 add_executable(${PROJECT_NAME}
     ${SH_SRC}
