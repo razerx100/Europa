@@ -1,2 +1,2 @@
-glslc.exe .\src\FSColored.frag -o SPIR-V/FSColored.spv
-glslc.exe .\src\VSColored.vert -o SPIR-V/VSColored.spv
+glslc.exe .\src\FragmentShader.frag -o SPIR-V/FragmentShader.spv
+glslc.exe .\src\VertexShader.vert -o SPIR-V/VertexShader.spv
