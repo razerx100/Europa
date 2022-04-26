@@ -8,6 +8,8 @@ layout(push_constant) uniform TextureConstant {
 	uint texIndex;
 }texConsts;
 
+layout(binding = 0) uniform sampler2D textureAtlas;
+
 void main() {
-    outColour = vec4(uv, 1.0, 1.0);
+    outColour = texture(textureAtlas, uv);
 }
