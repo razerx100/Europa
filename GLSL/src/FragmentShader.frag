@@ -8,8 +8,8 @@ layout(push_constant) uniform TextureConstant {
 	uint texIndex;
 }texConsts;
 
-layout(binding = 0) uniform sampler2D textureAtlas;
+layout(binding = 0) uniform sampler2D g_textures[];
 
 void main() {
-    outColour = texture(textureAtlas, uv);
+    outColour = texture(g_textures[texConsts.texIndex], uv);
 }
