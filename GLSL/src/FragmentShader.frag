@@ -1,14 +1,15 @@
-#version 450
+#version 460
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec2 uv;
 
 layout(location = 0) out vec4 outColour;
 
-layout(push_constant) uniform TextureConstant {
-	uint texIndex;
+layout(std140, push_constant) uniform TextureConstant {
+	layout(offset = 88) uint texIndex;
 }texConsts;
 
-layout(binding = 0) uniform sampler2D g_textures[];
+layout(binding = 1) uniform sampler2D g_textures[];
 
 void main() {
     outColour = texture(g_textures[texConsts.texIndex], uv);
