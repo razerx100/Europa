@@ -7,8 +7,13 @@ struct TextureInfo {
     uint vMax;
 };
 
-struct Transform {
+struct Model {
+    matrix model;
+};
+
+struct CameraMatrices {
     matrix view;
+    matrix projection;
 };
 
 struct VSOut
@@ -18,7 +23,8 @@ struct VSOut
 };
 
 ConstantBuffer<TextureInfo> texInfo : register(b1);
-ConstantBuffer<Transform> viewMatrix : register(b2);
+ConstantBuffer<Model> modelMatrix : register(b2);
+ConstantBuffer<CameraMatrices> camera : register(b3);
 
 float PixelToUV(uint pixelCoord, uint maxLength) {
     return (float)((pixelCoord - 1) * 2 + 1) / (maxLength * 2);
@@ -26,7 +32,10 @@ float PixelToUV(uint pixelCoord, uint maxLength) {
 
 VSOut main(float3 position : Position) {
     VSOut obj;
-    obj.position = mul(viewMatrix.view, float4(position, 1.0f));
+
+    matrix transform = mul(camera.projection, mul(camera.view, modelMatrix.model));
+
+    obj.position = mul(transform, float4(position, 1.0f));
 
     obj.uv = float2(
         PixelToUV(texInfo.uStart, texInfo.uMax),
