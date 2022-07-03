@@ -1,14 +1,10 @@
-struct TextureInfo {
-    uint uStart;
-    uint uEnd;
-    uint uMax;
-    uint vStart;
-    uint vEnd;
-    uint vMax;
+struct UVInfo {
+    float2 uvOffset;
+    float2 uvRatio;
 };
 
-struct Model {
-    matrix model;
+struct ModelMat {
+    matrix modelMat;
 };
 
 struct CameraMatrices {
@@ -22,25 +18,18 @@ struct VSOut
     float4 position : SV_Position;
 };
 
-ConstantBuffer<TextureInfo> texInfo : register(b1);
-ConstantBuffer<Model> modelMatrix : register(b2);
+ConstantBuffer<UVInfo> uvInfo : register(b1);
+ConstantBuffer<ModelMat> modelMatrix : register(b2);
 ConstantBuffer<CameraMatrices> camera : register(b3);
 
-float PixelToUV(uint pixelCoord, uint maxLength) {
-    return (float)((pixelCoord - 1) * 2 + 1) / (maxLength * 2);
-}
-
-VSOut main(float3 position : Position) {
+VSOut main(float3 position : Position, float2 uv : UV) {
     VSOut obj;
 
-    matrix transform = mul(camera.projection, mul(camera.view, modelMatrix.model));
+    matrix transform = mul(camera.projection, mul(camera.view, modelMatrix.modelMat));
 
     obj.position = mul(transform, float4(position, 1.0f));
 
-    obj.uv = float2(
-        PixelToUV(texInfo.uStart, texInfo.uMax),
-        PixelToUV(texInfo.vStart, texInfo.vMax)
-    );
+    obj.uv = uv * uvInfo.uvRatio + uvInfo.uvOffset;
 
     return obj;
 }
