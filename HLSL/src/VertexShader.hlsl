@@ -3,6 +3,11 @@ struct PerModelData {
     float2 uvRatio;
     matrix modelMat;
     uint texIndex;
+    float padding[3];
+};
+
+struct ModelIndex {
+    uint index;
 };
 
 struct CameraMatrices {
@@ -17,13 +22,16 @@ struct VSOut
     float4 position : SV_Position;
 };
 
-ConstantBuffer<PerModelData> modelData : register(b0);
-ConstantBuffer<CameraMatrices> camera : register(b1);
+StructuredBuffer<PerModelData> b_modelData : register(t0);
+ConstantBuffer<ModelIndex> b_modelIndex : register(b0);
+ConstantBuffer<CameraMatrices> b_camera : register(b1);
 
 VSOut main(float3 position : Position, float2 uv : UV) {
     VSOut obj;
 
-    matrix transform = mul(camera.projection, mul(camera.view, modelData.modelMat));
+    const PerModelData modelData = b_modelData[b_modelIndex.index];
+
+    matrix transform = mul(b_camera.projection, mul(b_camera.view, modelData.modelMat));
 
     obj.position = mul(transform, float4(position, 1.0f));
     obj.uv = uv * modelData.uvRatio + modelData.uvOffset;
