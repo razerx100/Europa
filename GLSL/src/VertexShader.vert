@@ -6,10 +6,6 @@ layout(location = 1) in vec2 uvIn;
 layout(location = 0) out vec2 uvOut;
 layout(location = 1) out uint texIndex;
 
-layout(push_constant) uniform PushData {
-	uint modelIndex;
-}pushData;
-
 struct PerModelData {
     vec2 uvOffset;
     vec2 uvRatio;
@@ -28,7 +24,7 @@ layout(binding = 0) uniform CameraMatrices {
 }camera;
 
 void main(){
-	const PerModelData modelData = modelData.models[pushData.modelIndex];
+	const PerModelData modelData = modelData.models[gl_BaseInstance];
 
 	mat4 transform = camera.projection * camera.view * modelData.modelMat;
 
