@@ -1,4 +1,6 @@
 # Europa
 Europa consists of shaders written in HLSL and GLSL.
 
-build.bat in GLSL will only work, when you have Vulkan SDK / glslc included in your System Environment Variable.
+## Requirements
+Vulkan SDK or glslc
+[dxc](https://github.com/microsoft/DirectXShaderCompiler)
