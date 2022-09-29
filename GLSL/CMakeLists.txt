@@ -14,6 +14,12 @@ find_program(
      $ENV{VULKAN_SDK}/Bin/
 )
 
+foreach(SHADER ${SH_SRC})
+    get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
+    set(SPIRV "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${FILE_NAME}.spv")
+    list(APPEND SPIRV_BINARY ${SPIRV})
+endforeach(SHADER)
+
 add_custom_target(
     GLSL
     ALL
@@ -42,7 +48,6 @@ foreach(SHADER ${SH_SRC})
         DEPENDS
          ${SHADER}
     )
-    list(APPEND SPIRV_BINARY ${SPIRV})
 endforeach(SHADER)
 
 source_group("Source Files" FILES ${SH_SRC})

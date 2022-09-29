@@ -10,6 +10,12 @@ find_program(
      dxc
 )
 
+foreach(SHADER ${SH_SRC})
+    get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
+    set(CSO "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${FILE_NAME}.cso")
+    list(APPEND DX_BINARY ${CSO})
+endforeach(SHADER)
+
 add_custom_target(
     HLSL
     ALL
@@ -52,7 +58,6 @@ foreach(SHADER ${SH_SRC})
         DEPENDS
          ${SHADER}
     )
-    list(APPEND DX_BINARY ${CSO})
 endforeach(SHADER)
 
 set_source_files_properties(${SH_SRC} PROPERTIES VS_TOOL_OVERRIDE CustomBuild)
