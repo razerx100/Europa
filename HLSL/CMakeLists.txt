@@ -7,11 +7,12 @@ file(
 
 find_program(
     DXC
-     dxc.exe
+     dxc
 )
 
 add_custom_target(
     HLSL
+    ALL
     DEPENDS
      ${DX_BINARY}
     SOURCES

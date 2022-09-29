@@ -16,6 +16,7 @@ find_program(
 
 add_custom_target(
     GLSL
+    ALL
     DEPENDS
      ${SPIRV_BINARY}
     SOURCES
