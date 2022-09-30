@@ -14,6 +14,8 @@ find_program(
      $ENV{VULKAN_SDK}/Bin/
 )
 
+set(SHADER_PATH resources/shaders)
+
 foreach(SHADER ${SH_SRC})
     get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
     set(SPIRV "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${FILE_NAME}.spv")
@@ -29,8 +31,6 @@ add_custom_target(
      ${SH_SRC}
 )
 
-set(SHADER_PATH resources/shaders)
-
 foreach(SHADER ${SH_SRC})
     message(STATUS "Adding shader...")
     get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
@@ -41,6 +41,8 @@ foreach(SHADER ${SH_SRC})
         TARGET
          GLSL
         POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+         -E make_directory ${CMAKE_BINARY_DIR}/${SHADER_PATH}
         COMMAND
          ${GLSLC} ${SHADER} -o ${SPIRV}
         COMMAND ${CMAKE_COMMAND}

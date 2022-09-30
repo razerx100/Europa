@@ -10,6 +10,8 @@ find_program(
      dxc
 )
 
+set(SHADER_PATH resources/shaders)
+
 foreach(SHADER ${SH_SRC})
     get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
     set(CSO "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${FILE_NAME}.cso")
@@ -26,7 +28,6 @@ add_custom_target(
 )
 
 set(SHADER_MODEL 6_0)
-set(SHADER_PATH resources/shaders)
 
 foreach(SHADER ${SH_SRC})
     message(STATUS "Adding shader...")
@@ -51,6 +52,8 @@ foreach(SHADER ${SH_SRC})
         TARGET
          HLSL
         POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+         -E make_directory ${CMAKE_BINARY_DIR}/${SHADER_PATH}
         COMMAND
          ${DXC} ${SHADER} -E main -T ${SHADER_TYPE}_${SHADER_MODEL} -Fo ${CSO}
         COMMAND ${CMAKE_COMMAND}
