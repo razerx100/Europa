@@ -15,8 +15,7 @@ struct CameraMatrices {
     matrix projection;
 };
 
-struct VSOut
-{
+struct VSOut {
     float2 uv : UV;
     uint texIndex : TexIndex;
     float4 position : SV_Position;
