@@ -1,0 +1,8 @@
+HLSL   ThreadGroup    ThreadLocal    GroupThreadID        GroupID        DispatchThreadID      GroupIndex
+GLSL   WorkGroup      LocalSize      LocalInvocationID    WorkGroupID    GlobalInvocationID    LocalInvocationIndex
+
+Formulae (in GLSL term):
+    GlobalInvocationID = WorkGroupID * WorkGroupSize + LocalInvocationID;
+    LocalInvocationIndex = LocalInvocationID.z * WorkGroupSize.x * WorkGroupSize.y +
+                           LocalInvocationID.y * WorkGroupSize.x +
+                           LocalInvocationID.x;

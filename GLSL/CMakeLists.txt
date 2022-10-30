@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 file(
     GLOB_RECURSE SH_SRC
-     src/*.frag src/*.vert
+     src/*.frag src/*.vert src/*.comp
 )
 
 find_program(

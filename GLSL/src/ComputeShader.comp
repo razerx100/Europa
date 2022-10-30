@@ -1,0 +1,26 @@
+#version 460
+
+#define threadBlockSize 128
+
+layout(local_size_x = threadBlockSize, local_size_y = 1, local_size_z = 1) in;
+
+struct PerModelData {
+    vec2 uvOffset;
+    vec2 uvRatio;
+    mat4 modelMat;
+    uint texIndex;
+    float padding[3];
+};
+
+layout(binding = 1) readonly buffer Modeldata {
+	PerModelData models[];
+} modelData;
+
+layout(binding = 0) uniform CameraMatrices {
+	mat4 view;
+	mat4 projection;
+}camera;
+
+void main(){
+    uint index = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
+}
