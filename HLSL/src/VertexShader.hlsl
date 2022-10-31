@@ -3,7 +3,7 @@ struct PerModelData {
     float2 uvRatio;
     matrix modelMat;
     uint texIndex;
-    float padding[3];
+    float3 modelOffset;
 };
 
 struct ModelIndex {
@@ -32,7 +32,7 @@ VSOut main(float3 position : Position, float2 uv : UV) {
 
     matrix transform = mul(b_camera.projection, mul(b_camera.view, modelData.modelMat));
 
-    obj.position = mul(transform, float4(position, 1.0f));
+    obj.position = mul(transform, float4(position + modelData.modelOffset, 1.0f));
     obj.uv = uv * modelData.uvRatio + modelData.uvOffset;
     obj.texIndex = modelData.texIndex;
 

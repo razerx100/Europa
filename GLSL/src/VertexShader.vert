@@ -11,7 +11,7 @@ struct PerModelData {
     vec2 uvRatio;
     mat4 modelMat;
     uint texIndex;
-    float padding[3];
+    vec3 modelOffset;
 };
 
 layout(binding = 2) readonly buffer Modeldata {
@@ -28,7 +28,10 @@ void main(){
 
 	mat4 transform = camera.projection * camera.view * modelData.modelMat;
 
-	gl_Position = transform * vec4(inPosition.x, inPosition.y, inPosition.z, 1.0);
+	const vec3 currentPosition = inPosition + modelData.modelOffset;
+	gl_Position = transform * vec4(
+		currentPosition.x, currentPosition.y, currentPosition.z, 1.0
+	);
 
 	uvOut = uvIn * modelData.uvRatio + modelData.uvOffset;
 	texIndex = modelData.texIndex;

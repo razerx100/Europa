@@ -9,7 +9,7 @@ struct PerModelData {
     vec2 uvRatio;
     mat4 modelMat;
     uint texIndex;
-    float padding[3];
+    vec3 modelOffset;
 };
 
 layout(binding = 1) readonly buffer Modeldata {

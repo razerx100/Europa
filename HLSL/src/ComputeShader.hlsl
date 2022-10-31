@@ -5,7 +5,7 @@ struct PerModelData {
     float2 uvRatio;
     matrix modelMat;
     uint texIndex;
-    float padding[3];
+    float3 modelOffset;
 };
 
 struct CameraMatrices {
