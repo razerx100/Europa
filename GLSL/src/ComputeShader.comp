@@ -9,7 +9,7 @@ struct PerModelData {
     vec2 uvRatio;
     mat4 modelMat;
     uint texIndex;
-    vec3 padding0;
+    float padding0[3];
     vec3 modelOffset;
     float padding1;
 };
