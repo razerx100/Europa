@@ -6,6 +6,7 @@ struct PerModelData {
     matrix modelMat;
     uint texIndex;
     float3 modelOffset;
+    float3 boundingBox[8];
 };
 
 struct CameraMatrices {

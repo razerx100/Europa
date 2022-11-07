@@ -14,6 +14,7 @@ struct PerModelData {
     float padding0[3];
     vec3 modelOffset;
     float padding1;
+    vec3 boundingBox[8];
 };
 
 layout(binding = 2) readonly buffer Modeldata {
