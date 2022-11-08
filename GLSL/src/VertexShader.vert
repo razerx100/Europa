@@ -13,7 +13,6 @@ struct PerModelData {
     uint texIndex;
     float padding0[3];
     vec3 modelOffset;
-    float padding1;
     vec3 boundingBox[8];
 };
 
