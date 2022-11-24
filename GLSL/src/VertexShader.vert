@@ -13,7 +13,8 @@ struct PerModelData {
     uint texIndex;
     float padding0[3];
     vec3 modelOffset;
-    vec3 boundingBox[8];
+    vec3 positiveBounds;
+    vec3 negativeBounds;
 };
 
 layout(binding = 2) readonly buffer Modeldata {

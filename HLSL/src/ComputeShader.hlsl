@@ -6,7 +6,8 @@ struct PerModelData {
     matrix modelMat;
     uint texIndex;
     float3 modelOffset;
-    float3 boundingBox[8];
+    float3 positiveBounds;
+    float3 negativeBounds;
 };
 
 struct CameraMatrices {
@@ -27,6 +28,9 @@ struct IndirectCommand {
 
 struct CullingData {
     uint commandCount;
+    float2 xBounds;
+    float2 yBounds;
+    float2 zBounds;
 };
 
 StructuredBuffer<PerModelData> b_modelData : register(t0);
@@ -35,10 +39,15 @@ AppendStructuredBuffer<IndirectCommand> b_outputCommands : register(u0);
 ConstantBuffer<CameraMatrices> b_camera : register(b0);
 ConstantBuffer<CullingData> cullingData : register(b1);
 
+bool IsInsideBounds(uint index) {
+    return true;
+}
+
 [numthreads(threadBlockSize, 1, 1)]
 void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex) {
     uint index = (groupId.x * threadBlockSize) + groupIndex;
 
     if(cullingData.commandCount > index)
-        b_outputCommands.Append(b_inputCommands[index]);
+        if(IsInsideBounds(index))
+            b_outputCommands.Append(b_inputCommands[index]);
 }

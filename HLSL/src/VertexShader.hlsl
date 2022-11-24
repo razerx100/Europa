@@ -4,7 +4,8 @@ struct PerModelData {
     matrix modelMat;
     uint texIndex;
     float3 modelOffset;
-    float3 boundingBox[8];
+    float3 positiveBounds;
+    float3 negativeBounds;
 };
 
 struct ModelIndex {
