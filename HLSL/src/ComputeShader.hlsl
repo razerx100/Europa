@@ -1,4 +1,4 @@
-#define threadBlockSize 128
+#define threadBlockSize 64
 
 struct PerModelData {
     float2 uvOffset;

@@ -1,6 +1,6 @@
 #version 460
 
-#define threadBlockSize 128
+#define threadBlockSize 64
 
 layout(local_size_x = threadBlockSize, local_size_y = 1, local_size_z = 1) in;
 
@@ -15,15 +15,46 @@ struct PerModelData {
     vec3 negativeBounds;
 };
 
-layout(binding = 1) readonly buffer Modeldata {
-	PerModelData models[];
-} modelData;
+struct IndirectArguments{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+};
 
 layout(binding = 0) uniform CameraMatrices {
 	mat4 view;
 	mat4 projection;
 }camera;
 
+layout(binding = 1) readonly buffer Modeldata {
+	PerModelData models[];
+} modelData;
+
+layout(std140, binding = 2) readonly buffer InputArguments{
+    IndirectArguments arguments[];
+}inputData;
+
+layout(std140, binding = 3) buffer OutputArguments{
+    IndirectArguments arguments[];
+}outputData;
+
+layout(binding = 4) uniform atomic_uint outputCounter;
+
+layout(binding = 5) uniform CullingData {
+    uint commandCount;
+    vec2 xBounds;
+    float padding;
+    vec2 yBounds;
+    vec2 zBounds;
+}cullingData;
+
 void main(){
     uint index = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
+
+    if(index < cullingData.commandCount){
+        outputData.arguments[atomicCounter(outputCounter)] = inputData.arguments[index];
+        atomicCounterIncrement(outputCounter);
+    }
 }
