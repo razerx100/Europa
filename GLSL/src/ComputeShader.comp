@@ -40,7 +40,9 @@ layout(std140, binding = 3) buffer OutputArguments{
     IndirectArguments arguments[];
 }outputData;
 
-layout(binding = 4) uniform atomic_uint outputCounter;
+layout(binding = 4) buffer OutputCounter{
+    uint counter;
+}outputCounter;
 
 layout(binding = 5) uniform CullingData {
     uint commandCount;
@@ -53,8 +55,6 @@ layout(binding = 5) uniform CullingData {
 void main(){
     uint index = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
 
-    if(index < cullingData.commandCount){
-        outputData.arguments[atomicCounter(outputCounter)] = inputData.arguments[index];
-        atomicCounterIncrement(outputCounter);
-    }
+    if(index < cullingData.commandCount)
+        outputData.arguments[atomicAdd(outputCounter.counter, 1)] = inputData.arguments[index];
 }
