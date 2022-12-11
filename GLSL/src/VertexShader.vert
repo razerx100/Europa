@@ -27,12 +27,12 @@ layout(binding = 0) uniform CameraMatrices {
 }camera;
 
 void main(){
-	const PerModelData modelData = modelData.models[gl_BaseInstance];
+	const PerModelData modelDataInst = modelData.models[gl_BaseInstance];
 
-	mat4 transform = camera.projection * camera.view * modelData.modelMat;
+	mat4 transform = camera.projection * camera.view * modelDataInst.modelMat;
 
-	gl_Position = transform * vec4(inPosition + modelData.modelOffset, 1.0);
+	gl_Position = transform * vec4(inPosition + modelDataInst.modelOffset, 1.0);
 
-	uvOut = uvIn * modelData.uvRatio + modelData.uvOffset;
-	texIndex = modelData.texIndex;
+	uvOut = uvIn * modelDataInst.uvRatio + modelDataInst.uvOffset;
+	texIndex = modelDataInst.texIndex;
 }
