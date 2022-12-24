@@ -36,7 +36,8 @@ struct CullingData {
 
 StructuredBuffer<PerModelData> b_modelData : register(t0);
 StructuredBuffer<IndirectCommand> b_inputCommands : register(t1);
-AppendStructuredBuffer<IndirectCommand> b_outputCommands : register(u0);
+RWStructuredBuffer<IndirectCommand> b_outputCommands : register(u0);
+RWStructuredBuffer<uint> b_counterBuffers : register(u1);
 ConstantBuffer<CameraMatrices> b_camera : register(b0);
 ConstantBuffer<CullingData> cullingData : register(b1);
 
@@ -104,7 +105,10 @@ bool IsModelInsideBounds(uint index) {
 void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex) {
     uint index = (groupId.x * threadBlockSize) + groupIndex;
 
-    if(cullingData.commandCount > index)
-        if(IsModelInsideBounds(index))
-            b_outputCommands.Append(b_inputCommands[index]);
+    if (cullingData.commandCount > index)
+        if (IsModelInsideBounds(index)) {
+            uint outputIndex = 0;
+            InterlockedAdd(b_counterBuffers[0], 1, outputIndex);
+            b_outputCommands[outputIndex] = b_inputCommands[index];
+        }
 }
