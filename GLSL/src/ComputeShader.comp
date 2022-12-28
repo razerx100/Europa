@@ -24,6 +24,11 @@ struct IndirectArguments{
     float padding[3];
 };
 
+struct CounterBuffer{
+    uint counter;
+    uint modelCountOffset;
+};
+
 layout(binding = 0) uniform CameraMatrices {
 	mat4 view;
 	mat4 projection;
@@ -42,11 +47,12 @@ layout(binding = 3) buffer OutputArguments{
 }outputData;
 
 layout(binding = 4) buffer OutputCounter{
-    uint counter;
-}outputCounter;
+    CounterBuffer counters[];
+}outputCounters;
 
 layout(binding = 5) uniform CullingData {
     uint commandCount;
+    uint modelTypes;
     vec2 xBounds;
     vec2 yBounds;
     vec2 zBounds;
@@ -115,8 +121,21 @@ bool IsModelInsideBounds(uint index) {
 void main(){
     uint index = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
 
-    if(index < cullingData.commandCount)
-        if(IsModelInsideBounds(index))
-            outputData.arguments[atomicAdd(outputCounter.counter, 1)] =
-            inputData.arguments[index];
+    if(index < cullingData.commandCount) {
+        uint currentCounterIndex = 0;
+        for(uint index0 = 0; index0 < cullingData.modelTypes; ++index0){
+            if(outputCounters.counters[index0].modelCountOffset <= index0)
+                currentCounterIndex = index0;
+            else
+                break;
+        }
+
+        if(IsModelInsideBounds(index)){
+            uint oldCounterValue = atomicAdd(outputCounters.counters[index].counter, 1);
+            uint modelStartOffset =
+                outputCounters.counters[index].modelCountOffset + oldCounterValue;
+
+            outputData.arguments[modelStartOffset] = inputData.arguments[index];
+        }
+    }
 }
