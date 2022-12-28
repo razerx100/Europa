@@ -124,18 +124,21 @@ void main(){
     if(index < cullingData.commandCount) {
         uint currentCounterIndex = 0;
         for(uint index0 = 0; index0 < cullingData.modelTypes; ++index0){
-            if(outputCounters.counters[index0].modelCountOffset <= index0)
+            if(outputCounters.counters[index0].modelCountOffset <= index)
                 currentCounterIndex = index0;
             else
                 break;
         }
 
         if(IsModelInsideBounds(index)){
-            uint oldCounterValue = atomicAdd(outputCounters.counters[index].counter, 1);
-            uint modelStartOffset =
-                outputCounters.counters[index].modelCountOffset + oldCounterValue;
+            uint oldCounterValue = atomicAdd(
+                outputCounters.counters[currentCounterIndex].counter, 1
+            );
+            uint modelWriteIndex =
+                outputCounters.counters[currentCounterIndex].modelCountOffset
+                + oldCounterValue;
 
-            outputData.arguments[modelStartOffset] = inputData.arguments[index];
+            outputData.arguments[modelWriteIndex] = inputData.arguments[index];
         }
     }
 }
