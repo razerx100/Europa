@@ -116,19 +116,19 @@ bool IsModelInsideBounds(uint index) {
     return false;
 }
 
-void main(){
-    uint index = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
+void main() {
+    uint threadIndex = (gl_WorkGroupID.x * threadBlockSize) + gl_LocalInvocationIndex;
 
-    if(index < cullingData.commandCount) {
-        uint currentCounterIndex = 0;
-        for(uint index0 = 0; index0 < cullingData.modelTypes; ++index0){
-            if(outputCounters.counters[index0].modelCountOffset <= index)
-                currentCounterIndex = index0;
-            else
-                break;
-        }
+    if(threadIndex < cullingData.commandCount)
+        if(IsModelInsideBounds(threadIndex)) {
+            uint currentCounterIndex = 0;
+            for(uint typeIndex = 0; typeIndex < cullingData.modelTypes; ++typeIndex){
+                if(outputCounters.counters[typeIndex].modelCountOffset <= threadIndex)
+                    currentCounterIndex = typeIndex;
+                else
+                    break;
+            }
 
-        if(IsModelInsideBounds(index)){
             uint oldCounterValue = atomicAdd(
                 outputCounters.counters[currentCounterIndex].counter, 1
             );
@@ -136,7 +136,6 @@ void main(){
                 outputCounters.counters[currentCounterIndex].modelCountOffset
                 + oldCounterValue;
 
-            outputData.arguments[modelWriteIndex] = inputData.arguments[index];
+            outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
         }
-    }
 }

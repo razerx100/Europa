@@ -29,15 +29,21 @@ struct IndirectCommand {
 
 struct CullingData {
     uint commandCount;
+    uint modelTypes;
     float2 xBounds;
     float2 yBounds;
     float2 zBounds;
 };
 
+struct CounterBuffer{
+    uint counter;
+    uint modelCountOffset;
+};
+
 StructuredBuffer<PerModelData> b_modelData : register(t0);
 StructuredBuffer<IndirectCommand> b_inputCommands : register(t1);
 RWStructuredBuffer<IndirectCommand> b_outputCommands : register(u0);
-RWStructuredBuffer<uint> b_counterBuffers : register(u1);
+RWStructuredBuffer<CounterBuffer> b_counterBuffers : register(u1);
 ConstantBuffer<CameraMatrices> b_camera : register(b0);
 ConstantBuffer<CullingData> cullingData : register(b1);
 
@@ -103,12 +109,25 @@ bool IsModelInsideBounds(uint index) {
 
 [numthreads(threadBlockSize, 1, 1)]
 void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex) {
-    uint index = (groupId.x * threadBlockSize) + groupIndex;
+    uint threadIndex = (groupId.x * threadBlockSize) + groupIndex;
 
-    if (cullingData.commandCount > index)
-        if (IsModelInsideBounds(index)) {
-            uint outputIndex = 0;
-            InterlockedAdd(b_counterBuffers[0], 1, outputIndex);
-            b_outputCommands[outputIndex] = b_inputCommands[index];
+    if (cullingData.commandCount > threadIndex)
+        if(IsModelInsideBounds(threadIndex)) {
+            uint currentCounterIndex = 0;
+            for(uint typeIndex = 0; typeIndex < cullingData.modelTypes; ++typeIndex){
+                if(b_counterBuffers[typeIndex].modelCountOffset <= threadIndex)
+                    currentCounterIndex = typeIndex;
+                else
+                    break;
+            }
+
+            uint oldCounterValue = 0u;
+            InterlockedAdd(
+                b_counterBuffers[currentCounterIndex].counter, 1, oldCounterValue
+            );
+            uint modelWriteIndex =
+                b_counterBuffers[currentCounterIndex].modelCountOffset + oldCounterValue;
+
+            b_outputCommands[modelWriteIndex] = b_inputCommands[threadIndex];
         }
 }
