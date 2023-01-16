@@ -1,10 +1,11 @@
 #version 460
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec2 uvIn;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUV;
 
-layout(location = 0) out vec2 uvOut;
-layout(location = 1) out uint texIndex;
+layout(location = 0) out vec2 outUV;
+layout(location = 1) out uint outTexIndex;
 
 struct PerModelData {
     vec2 uvOffset;
@@ -32,6 +33,6 @@ void main(){
 
 	gl_Position = transform * vec4(inPosition + modelDataInst.modelOffset, 1.0);
 
-	uvOut = uvIn * modelDataInst.uvRatio + modelDataInst.uvOffset;
-	texIndex = modelDataInst.texIndex;
+	outUV = inUV * modelDataInst.uvRatio + modelDataInst.uvOffset;
+	outTexIndex = modelDataInst.texIndex;
 }

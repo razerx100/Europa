@@ -28,7 +28,7 @@ StructuredBuffer<PerModelData> b_modelData : register(t0);
 ConstantBuffer<ModelIndex> b_modelIndex : register(b0);
 ConstantBuffer<CameraMatrices> b_camera : register(b1);
 
-VSOut main(float3 position : Position, float2 uv : UV) {
+VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
     VSOut obj;
 
     const PerModelData modelData = b_modelData[b_modelIndex.index];
