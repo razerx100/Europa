@@ -3,7 +3,6 @@ struct Material {
     float4 diffuse;
     float4 specular;
     float shininess;
-    float3 padding;
 };
 
 struct Light {
@@ -11,16 +10,15 @@ struct Light {
     float4 ambient;
     float4 diffuse;
     float4 specular;
-    float padding;
 };
 
-struct FragmentData {
+struct PixelData {
     uint lightCount;
 };
 
 StructuredBuffer<Material> b_materialData : register(t1);
 StructuredBuffer<Light> b_lightData : register(t2);
-ConstantBuffer<FragmentData> fragmentData : register(b2);
+ConstantBuffer<PixelData> b_pixelData : register(b2);
 Texture2D g_textures[] : register(t3);
 SamplerState samplerState : register(s0);
 

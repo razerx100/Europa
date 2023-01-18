@@ -3,7 +3,6 @@ struct Material {
     float4 diffuse;
     float4 specular;
     float shininess;
-    float3 padding;
 };
 
 struct Light {
@@ -11,7 +10,6 @@ struct Light {
     float4 ambient;
     float4 diffuse;
     float4 specular;
-    float padding;
 };
 
 struct FragmentData {
