@@ -28,25 +28,31 @@ add_custom_target(
 )
 
 set(SHADER_MODEL 6_0)
+set(VERTEX_NAME "Vertex")
+set(PIXEL_NAME "Pixel")
+set(COMPUTE_NAME "Compute")
 
 foreach(SHADER ${SH_SRC})
     message(STATUS "Adding shader...")
     get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
-    set(CSO "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${FILE_NAME}.cso")
     message(STATUS ${SHADER})
 
-    string(TOLOWER ${FILE_NAME} lowerFileName)
-    string(FIND ${lowerFileName} "vertex" vertexCheck)    
-    string(FIND ${lowerFileName} "pixel" pixelCheck)
-    string(FIND ${lowerFileName} "compute" computeCheck)
+    string(FIND ${FILE_NAME} ${VERTEX_NAME} vertexCheck)    
+    string(FIND ${FILE_NAME} ${PIXEL_NAME} pixelCheck)
+    string(FIND ${FILE_NAME} ${COMPUTE_NAME} computeCheck)
     
     if(vertexCheck GREATER "-1")
         set(SHADER_TYPE vs)
+	  set(OUTPUT_NAME ${FILE_NAME})
     elseif(pixelCheck GREATER "-1")
         set(SHADER_TYPE ps)
+        string(REPLACE ${PIXEL_NAME} "" OUTPUT_NAME ${FILE_NAME})
     elseif(computeCheck GREATER "-1")
         set(SHADER_TYPE cs)
+	  set(OUTPUT_NAME ${FILE_NAME})
     endif()
+
+    set(CSO "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${OUTPUT_NAME}.cso")
     
     add_custom_command(
         TARGET
@@ -57,7 +63,7 @@ foreach(SHADER ${SH_SRC})
         COMMAND
          ${DXC} ${SHADER} -E main -T ${SHADER_TYPE}_${SHADER_MODEL} -Fo ${CSO}
         COMMAND ${CMAKE_COMMAND}
-         -E copy ${CSO} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/${SHADER_PATH}/${FILE_NAME}.cso
+         -E copy ${CSO} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/${SHADER_PATH}/${OUTPUT_NAME}.cso
         DEPENDS
          ${SHADER}
     )

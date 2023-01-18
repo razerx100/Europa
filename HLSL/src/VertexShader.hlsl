@@ -21,6 +21,7 @@ struct CameraMatrices {
 struct VSOut {
     float2 uv : UV;
     uint texIndex : TexIndex;
+    uint modelIndex : ModelIndex;
     float4 position : SV_Position;
 };
 
@@ -38,6 +39,7 @@ VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
     obj.position = mul(transform, float4(position + modelData.modelOffset, 1.0f));
     obj.uv = uv * modelData.uvRatio + modelData.uvOffset;
     obj.texIndex = modelData.texIndex;
+    obj.modelIndex = b_modelIndex.index;
 
     return obj;
 }
