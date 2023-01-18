@@ -1,15 +1,17 @@
 struct Material {
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
+    float4 ambient;
+    float4 diffuse;
+    float4 specular;
     float shininess;
+    float3 padding;
 };
 
 struct Light {
     float3 position;
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
+    float4 ambient;
+    float4 diffuse;
+    float4 specular;
+    float padding;
 };
 
 struct FragmentData {
@@ -28,7 +30,7 @@ float4 main(
     Material material = b_materialData[modelIndex];
 
     // Diffuse
-    float3 diffuse = material.diffuse;
+    float4 diffuse = material.diffuse;
 
-    return float4(diffuse, 1.0) * g_textures[texIndex].Sample(samplerState, uv);
+    return diffuse * g_textures[texIndex].Sample(samplerState, uv);
 }

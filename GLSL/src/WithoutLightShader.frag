@@ -8,17 +8,17 @@ flat layout(location = 2) in uint inModelIndex;
 layout(location = 0) out vec4 outColour;
 
 struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
     float shininess;
 };
 
 struct Light {
     vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
 };
 
 layout(binding = 2) uniform sampler2D g_textures[];
@@ -39,7 +39,7 @@ void main() {
     Material material = materialData.materials[inModelIndex];
 
     // Diffuse
-    vec3 diffuse = material.diffuse;
+    vec4 diffuse = material.diffuse;
 
-    outColour = vec4(diffuse, 1.0) * texture(g_textures[inTexIndex], inUV);
+    outColour = diffuse * texture(g_textures[inTexIndex], inUV);
 }
