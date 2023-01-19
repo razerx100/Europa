@@ -38,8 +38,5 @@ layout(binding = 5) uniform FragmentData {
 void main() {
     Material material = materialData.materials[inModelIndex];
 
-    // Diffuse
-    vec4 diffuse = material.diffuse;
-
-    outColour = diffuse * texture(g_textures[inTexIndex], inUV);
+    outColour = material.diffuse * texture(g_textures[inTexIndex], inUV);
 }

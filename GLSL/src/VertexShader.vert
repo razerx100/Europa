@@ -7,6 +7,8 @@ layout(location = 2) in vec2 inUV;
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out uint outTexIndex;
 layout(location = 2) out uint outModelIndex;
+layout(location = 3) out vec3 outViewVertexPosition;
+layout(location = 4) out vec3 outNormal;
 
 struct PerModelData {
     vec2 uvOffset;
@@ -30,11 +32,16 @@ layout(binding = 1) readonly buffer Modeldata {
 void main(){
 	const PerModelData modelDataInst = modelData.models[gl_BaseInstance];
 
-	mat4 transform = camera.projection * camera.view * modelDataInst.modelMat;
+	mat4 viewSpace = camera.view * modelDataInst.modelMat;
 
-	gl_Position = transform * vec4(inPosition + modelDataInst.modelOffset, 1.0);
+	vec4 vertexPosition = vec4(inPosition + modelDataInst.modelOffset, 1.0);
+	vec4 viewVertexPosition = viewSpace * vertexPosition;
+
+	gl_Position = camera.projection * viewVertexPosition;
 
 	outUV = inUV * modelDataInst.uvRatio + modelDataInst.uvOffset;
 	outTexIndex = modelDataInst.texIndex;
 	outModelIndex = gl_BaseInstance;
+	outViewVertexPosition = viewVertexPosition.xyz;
+	outNormal = inNormal;
 }

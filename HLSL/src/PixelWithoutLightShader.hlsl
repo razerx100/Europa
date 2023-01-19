@@ -27,8 +27,5 @@ float4 main(
 ) : SV_Target {
     Material material = b_materialData[modelIndex];
 
-    // Diffuse
-    float4 diffuse = material.diffuse;
-
-    return diffuse * g_textures[texIndex].Sample(samplerState, uv);
+    return material.diffuse * g_textures[texIndex].Sample(samplerState, uv);
 }

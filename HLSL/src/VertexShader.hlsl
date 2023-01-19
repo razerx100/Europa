@@ -22,6 +22,8 @@ struct VSOut {
     float2 uv : UV;
     uint texIndex : TexIndex;
     uint modelIndex : ModelIndex;
+    float3 viewVertexPosition : ViewPosition;
+    float3 normal : Normal;
     float4 position : SV_Position;
 };
 
@@ -34,12 +36,17 @@ VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
 
     const PerModelData modelData = b_modelData[b_modelIndex.index];
 
-    matrix transform = mul(b_camera.projection, mul(b_camera.view, modelData.modelMat));
+    matrix viewSpace = mul(b_camera.view, modelData.modelMat);
 
-    obj.position = mul(transform, float4(position + modelData.modelOffset, 1.0f));
+    float4 vertexPosition = float4(position + modelData.modelOffset, 1.0);
+    float4 viewVertexPosition = mul(viewSpace, vertexPosition);
+
+    obj.position = mul(b_camera.projection, viewVertexPosition);
     obj.uv = uv * modelData.uvRatio + modelData.uvOffset;
     obj.texIndex = modelData.texIndex;
     obj.modelIndex = b_modelIndex.index;
+    obj.viewVertexPosition = viewVertexPosition.xyz;
+    obj.normal = normal;
 
     return obj;
 }
