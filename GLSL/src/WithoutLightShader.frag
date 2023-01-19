@@ -4,6 +4,8 @@
 layout(location = 0) in vec2 inUV;
 flat layout(location = 1) in uint inTexIndex;
 flat layout(location = 2) in uint inModelIndex;
+layout(location = 3) in vec3 inViewFragmentPosition;
+layout(location = 4) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColour;
 

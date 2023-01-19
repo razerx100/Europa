@@ -12,6 +12,7 @@ struct PerModelData {
     vec3 modelOffset;
     vec3 positiveBounds;
     vec3 negativeBounds;
+	mat4 viewNormalMatrix;
 };
 
 struct IndirectArguments{

@@ -8,7 +8,7 @@ struct PerModelData {
     float3 modelOffset;
     float3 positiveBounds;
     float3 negativeBounds;
-    float2 padding;
+    matrix viewNormalMatrix;
 };
 
 struct CameraMatrices {

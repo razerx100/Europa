@@ -6,7 +6,7 @@ struct PerModelData {
     float3 modelOffset;
     float3 positiveBounds;
     float3 negativeBounds;
-    float2 padding;
+    matrix viewNormalMatrix;
 };
 
 struct ModelIndex {
@@ -46,7 +46,7 @@ VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
     obj.texIndex = modelData.texIndex;
     obj.modelIndex = b_modelIndex.index;
     obj.viewVertexPosition = viewVertexPosition.xyz;
-    obj.normal = normal;
+    obj.normal = mul((float3x3)modelData.viewNormalMatrix, normal);
 
     return obj;
 }

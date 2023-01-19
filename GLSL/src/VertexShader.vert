@@ -18,6 +18,7 @@ struct PerModelData {
     vec3 modelOffset;
     vec3 positiveBounds;
     vec3 negativeBounds;
+	mat4 viewNormalMatrix;
 };
 
 layout(binding = 0) uniform CameraMatrices {
@@ -43,5 +44,5 @@ void main(){
 	outTexIndex = modelDataInst.texIndex;
 	outModelIndex = gl_BaseInstance;
 	outViewVertexPosition = viewVertexPosition.xyz;
-	outNormal = inNormal;
+	outNormal = mat3(modelDataInst.viewNormalMatrix) * inNormal;
 }
