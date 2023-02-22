@@ -2,10 +2,9 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec2 inUV;
-flat layout(location = 1) in uint inTexIndex;
-flat layout(location = 2) in uint inModelIndex;
-layout(location = 3) in vec3 inViewFragmentPosition;
-layout(location = 4) in vec3 inNormal;
+flat layout(location = 1) in uint inModelIndex;
+layout(location = 2) in vec3 inViewFragmentPosition;
+layout(location = 3) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColour;
 
@@ -13,6 +12,12 @@ struct Material {
     vec4 ambient;
     vec4 diffuse;
     vec4 specular;
+    vec2 diffuseTexUVOffset;
+    vec2 diffuseTexUVRatio;
+    vec2 specularTexUVOffset;
+    vec2 specularTexUVRatio;
+    uint diffuseTexIndex;
+    uint specularTexIndex;
     float shininess;
 };
 
@@ -65,11 +70,15 @@ vec4 CalculateSpecular(
 
 void main() {
     Material material = materialData.materials[inModelIndex];
-    vec4 textureColour = texture(g_textures[inTexIndex], inUV);
+    vec2 offsettedDiffuseUV = inUV * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
+    vec2 offsettedSpecularUV = inUV * material.specularTexUVRatio + material.specularTexUVOffset;
 
-    vec4 fragmentAmbient = material.ambient * textureColour;
-    vec4 fragmentDiffuse = material.diffuse * textureColour;
-    vec4 fragmentSpecular = material.specular;
+    vec4 diffuseTexColour = texture(g_textures[material.diffuseTexIndex], offsettedDiffuseUV);
+    vec4 specularTexColour = texture(g_textures[material.diffuseTexIndex], offsettedSpecularUV);
+
+    vec4 fragmentAmbient = material.ambient * diffuseTexColour;
+    vec4 fragmentDiffuse = material.diffuse * diffuseTexColour;
+    vec4 fragmentSpecular = material.specular * specularTexColour;
 
     vec4 totalAmbient = vec4(0.0);
     vec4 totalDiffuse = vec4(0.0);

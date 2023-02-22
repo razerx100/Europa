@@ -1,13 +1,10 @@
 struct PerModelData {
-    float2 uvOffset;
-    float2 uvRatio;
     matrix modelMat;
-    uint texIndex;
+    matrix viewNormalMatrix;
     float3 modelOffset;
     float3 positiveBounds;
     float3 negativeBounds;
-    float2 padding;
-    matrix viewNormalMatrix;
+    float3 padding;
 };
 
 struct ModelIndex {
@@ -21,7 +18,6 @@ struct CameraMatrices {
 
 struct VSOut {
     float2 uv : UV;
-    uint texIndex : TexIndex;
     uint modelIndex : ModelIndex;
     float3 viewVertexPosition : ViewPosition;
     float3 normal : Normal;
@@ -43,8 +39,7 @@ VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
     float4 viewVertexPosition = mul(viewSpace, vertexPosition);
 
     obj.position = mul(b_camera.projection, viewVertexPosition);
-    obj.uv = uv * modelData.uvRatio + modelData.uvOffset;
-    obj.texIndex = modelData.texIndex;
+    obj.uv = uv;
     obj.modelIndex = b_modelIndex.index;
     obj.viewVertexPosition = viewVertexPosition.xyz;
     obj.normal = mul((float3x3)modelData.viewNormalMatrix, normal);

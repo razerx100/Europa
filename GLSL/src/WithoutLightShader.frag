@@ -2,10 +2,9 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec2 inUV;
-flat layout(location = 1) in uint inTexIndex;
-flat layout(location = 2) in uint inModelIndex;
-layout(location = 3) in vec3 inViewFragmentPosition;
-layout(location = 4) in vec3 inNormal;
+flat layout(location = 1) in uint inModelIndex;
+layout(location = 2) in vec3 inViewFragmentPosition;
+layout(location = 3) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColour;
 
@@ -13,6 +12,12 @@ struct Material {
     vec4 ambient;
     vec4 diffuse;
     vec4 specular;
+    vec2 diffuseTexUVOffset;
+    vec2 diffuseTexUVRatio;
+    vec2 specularTexUVOffset;
+    vec2 specularTexUVRatio;
+    uint diffuseTexIndex;
+    uint specularTexIndex;
     float shininess;
 };
 
@@ -39,6 +44,9 @@ layout(binding = 5) uniform FragmentData {
 
 void main() {
     Material material = materialData.materials[inModelIndex];
+    vec2 offsettedDiffuseUV = inUV * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
 
-    outColour = material.diffuse * texture(g_textures[inTexIndex], inUV);
+    outColour = material.diffuse * texture(
+        g_textures[material.diffuseTexIndex], offsettedDiffuseUV
+    );
 }

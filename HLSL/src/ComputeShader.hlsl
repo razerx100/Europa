@@ -1,15 +1,12 @@
 #define threadBlockSize 64
 
 struct PerModelData {
-    float2 uvOffset;
-    float2 uvRatio;
     matrix modelMat;
-    uint texIndex;
+    matrix viewNormalMatrix;
     float3 modelOffset;
     float3 positiveBounds;
     float3 negativeBounds;
-    float2 padding;
-    matrix viewNormalMatrix;
+    float3 padding;
 };
 
 struct CameraMatrices {

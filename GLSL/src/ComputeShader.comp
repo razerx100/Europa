@@ -5,14 +5,11 @@
 layout(local_size_x = threadBlockSize, local_size_y = 1, local_size_z = 1) in;
 
 struct PerModelData {
-    vec2 uvOffset;
-    vec2 uvRatio;
     mat4 modelMat;
-    uint texIndex;
+	mat4 viewNormalMatrix;
     vec3 modelOffset;
     vec3 positiveBounds;
     vec3 negativeBounds;
-	mat4 viewNormalMatrix;
 };
 
 struct IndirectArguments{

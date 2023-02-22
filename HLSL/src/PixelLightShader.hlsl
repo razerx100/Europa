@@ -2,6 +2,12 @@ struct Material {
     float4 ambient;
     float4 diffuse;
     float4 specular;
+    float2 diffuseTexUVOffset;
+    float2 diffuseTexUVRatio;
+    float2 specularTexUVOffset;
+    float2 specularTexUVRatio;
+    uint diffuseTexIndex;
+    uint specularTexIndex;
     float shininess;
 };
 
@@ -49,15 +55,23 @@ float4 CalculateSpecular(
 }
 
 float4 main(
-    float2 uv: UV, uint texIndex : TexIndex, uint modelIndex : ModelIndex,
-    float3 viewPixelPosition : ViewPosition, float3 normal : Normal
+    float2 uv : UV, uint modelIndex : ModelIndex, float3 viewPixelPosition : ViewPosition,
+    float3 normal : Normal
 ) : SV_Target {
     Material material = b_materialData[modelIndex];
-    float4 textureColour = g_textures[texIndex].Sample(samplerState, uv);
+    float2 offsettedDiffuseUV = uv * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
+    float2 offsettedSpecularUV = uv * material.specularTexUVRatio + material.specularTexUVOffset;
 
-    float4 pixelAmbient = material.ambient * textureColour;
-    float4 pixelDiffuse = material.diffuse * textureColour;
-    float4 pixelSpecular = material.specular;
+    float4 diffuseTexColour = g_textures[material.diffuseTexIndex].Sample(
+        samplerState, offsettedDiffuseUV
+    );
+    float4 specularTexColour = g_textures[material.specularTexIndex].Sample(
+        samplerState, offsettedSpecularUV
+    );
+
+    float4 pixelAmbient = material.ambient * diffuseTexColour;
+    float4 pixelDiffuse = material.diffuse * diffuseTexColour;
+    float4 pixelSpecular = material.specular * specularTexColour;
 
     float4 totalAmbient = float4(0.0, 0.0, 0.0, 0.0);
     float4 totalDiffuse = float4(0.0, 0.0, 0.0, 0.0);
