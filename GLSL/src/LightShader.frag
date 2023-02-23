@@ -74,7 +74,7 @@ void main() {
     vec2 offsettedSpecularUV = inUV * material.specularTexUVRatio + material.specularTexUVOffset;
 
     vec4 diffuseTexColour = texture(g_textures[material.diffuseTexIndex], offsettedDiffuseUV);
-    vec4 specularTexColour = texture(g_textures[material.diffuseTexIndex], offsettedSpecularUV);
+    vec4 specularTexColour = texture(g_textures[material.specularTexIndex], offsettedSpecularUV);
 
     vec4 fragmentAmbient = material.ambient * diffuseTexColour;
     vec4 fragmentDiffuse = material.diffuse * diffuseTexColour;
