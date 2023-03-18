@@ -7,7 +7,7 @@ struct PerModelData {
     float3 padding;
 };
 
-struct ModelIndex {
+struct ModelInfo {
     uint index;
 };
 
@@ -25,13 +25,13 @@ struct VSOut {
 };
 
 StructuredBuffer<PerModelData> b_modelData : register(t0);
-ConstantBuffer<ModelIndex> b_modelIndex : register(b0);
+ConstantBuffer<ModelInfo> b_modelInfo : register(b0);
 ConstantBuffer<CameraMatrices> b_camera : register(b1);
 
 VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
     VSOut obj;
 
-    const PerModelData modelData = b_modelData[b_modelIndex.index];
+    const PerModelData modelData = b_modelData[b_modelInfo.index];
 
     matrix viewSpace = mul(b_camera.view, modelData.modelMat);
 
@@ -40,7 +40,7 @@ VSOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV) {
 
     obj.position = mul(b_camera.projection, viewVertexPosition);
     obj.uv = uv;
-    obj.modelIndex = b_modelIndex.index;
+    obj.modelIndex = b_modelInfo.index;
     obj.viewVertexPosition = viewVertexPosition.xyz;
     obj.normal = mul((float3x3)modelData.viewNormalMatrix, normal);
 

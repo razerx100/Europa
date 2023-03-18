@@ -23,8 +23,9 @@ struct CameraMatrices {
     matrix projection;
 };
 
-struct MeshletOffset {
-    uint offset;
+struct ModelInfo {
+    uint index;
+    uint meshletOffset;
 };
 
 struct VertexOut {
@@ -35,7 +36,7 @@ struct VertexOut {
     float4 position : SV_Position;
 };
 
-ConstantBuffer<MeshletOffset> meshletOffset : register(b0);
+ConstantBuffer<ModelInfo> modelInfo : register(b0);
 ConstantBuffer<CameraMatrices> camera : register(b1);
 StructuredBuffer<PerModelData> modelData : register(t0);
 StructuredBuffer<Vertex> vertices : register(t3);
@@ -79,7 +80,7 @@ void main(
     uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
     out indices uint3 prims[126], out vertices VertexOut verts[64]
 ) {
-    Meshlet meshlet = meshlets[meshletOffset.offset + gid];
+    Meshlet meshlet = meshlets[modelInfo.meshletOffset + gid];
 
     SetMeshOutputCounts(meshlet.vertCount, meshlet.primCount);
 
@@ -88,6 +89,6 @@ void main(
 
     if (gtid < meshlet.vertCount)
         verts[gtid] = GetVertexAttributes(
-            meshletOffset.offset, GetVertexIndex(meshlet, gtid)
+            modelInfo.index, GetVertexIndex(meshlet, gtid)
         );
 }

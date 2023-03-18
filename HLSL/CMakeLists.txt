@@ -31,13 +31,13 @@ add_custom_target(
      ${SH_SRC} ${SH_HEAD}
 )
 
-set(SHADER_MODEL 6_0)
 set(VERTEX_NAME "Vertex")
 set(PIXEL_NAME "Pixel")
 set(COMPUTE_NAME "Compute")
 set(MESH_NAME "Mesh")
 
 foreach(SHADER ${SH_SRC})
+    set(SHADER_MODEL 6_0)
     message(STATUS "Adding shader...")
     get_filename_component(FILE_NAME ${SHADER} NAME_WLE)
     message(STATUS ${SHADER})
