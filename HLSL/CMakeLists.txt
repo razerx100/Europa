@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.21)
 
 file(
     GLOB_RECURSE SH_SRC
-     src/*.hlsl src/*.hlsli
+     src/*.hlsl
+)
+file(
+    GLOB_RECURSE SH_HEAD
+     src/*.hlsli
 )
 
 find_program(
@@ -24,13 +28,14 @@ add_custom_target(
     DEPENDS
      ${DX_BINARY}
     SOURCES
-     ${SH_SRC}
+     ${SH_SRC} ${SH_HEAD}
 )
 
 set(SHADER_MODEL 6_0)
 set(VERTEX_NAME "Vertex")
 set(PIXEL_NAME "Pixel")
 set(COMPUTE_NAME "Compute")
+set(MESH_NAME "Mesh")
 
 foreach(SHADER ${SH_SRC})
     message(STATUS "Adding shader...")
@@ -40,16 +45,19 @@ foreach(SHADER ${SH_SRC})
     string(FIND ${FILE_NAME} ${VERTEX_NAME} vertexCheck)    
     string(FIND ${FILE_NAME} ${PIXEL_NAME} pixelCheck)
     string(FIND ${FILE_NAME} ${COMPUTE_NAME} computeCheck)
+    string(FIND ${FILE_NAME} ${MESH_NAME} meshCheck)
     
+    set(OUTPUT_NAME ${FILE_NAME})
     if(vertexCheck GREATER "-1")
         set(SHADER_TYPE vs)
-	  set(OUTPUT_NAME ${FILE_NAME})
     elseif(pixelCheck GREATER "-1")
         set(SHADER_TYPE ps)
         string(REPLACE ${PIXEL_NAME} "" OUTPUT_NAME ${FILE_NAME})
     elseif(computeCheck GREATER "-1")
         set(SHADER_TYPE cs)
-	  set(OUTPUT_NAME ${FILE_NAME})
+    elseif(meshCheck GREATER "-1")
+        set(SHADER_TYPE ms)
+        set(SHADER_MODEL 6_5)
     endif()
 
     set(CSO "${CMAKE_BINARY_DIR}/${SHADER_PATH}/${OUTPUT_NAME}.cso")
@@ -72,3 +80,4 @@ endforeach(SHADER)
 set_source_files_properties(${SH_SRC} PROPERTIES VS_TOOL_OVERRIDE CustomBuild)
 
 source_group("Source Files" FILES ${SH_SRC})
+source_group("Header Files" FILES ${SH_HEAD})
