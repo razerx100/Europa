@@ -1,10 +1,6 @@
-struct Vertex {
-    float3 position;
-    float3 normal;
-    float2 uv;
-};
+#include "VertexProcessing.hlsli"
 
-struct PerModelData {
+struct ModelData {
     matrix modelMat;
     matrix viewNormalMatrix;
     float3 modelOffset;
@@ -28,17 +24,9 @@ struct ModelInfo {
     uint meshletOffset;
 };
 
-struct VertexOut {
-    float2 uv : UV;
-    uint modelIndex : ModelIndex;
-    float3 viewVertexPosition : ViewPosition;
-    float3 normal : Normal;
-    float4 position : SV_Position;
-};
-
 ConstantBuffer<ModelInfo> modelInfo : register(b0);
 ConstantBuffer<CameraMatrices> camera : register(b1);
-StructuredBuffer<PerModelData> modelData : register(t0);
+StructuredBuffer<ModelData> modelData : register(t0);
 StructuredBuffer<Vertex> vertices : register(t3);
 StructuredBuffer<uint> vertexIndices : register(t4);
 StructuredBuffer<uint> primIndices : register(t5);
@@ -59,19 +47,12 @@ uint GetVertexIndex(Meshlet meshlet, uint localIndex) {
 VertexOut GetVertexAttributes(uint modelIndex, uint vertexIndex) {
     Vertex vertex = vertices[vertexIndex];
 
-    const PerModelData model = modelData[modelIndex];
-    matrix viewSpace = mul(camera.view, model.modelMat);
-    float4 vertexPosition = float4(vertex.position + model.modelOffset, 1.0);
-    float4 viewVertexPosition = mul(viewSpace, vertexPosition);
+    const ModelData model = modelData[modelIndex];
 
-    VertexOut vout;
-    vout.position = mul(camera.projection, viewVertexPosition);
-    vout.viewVertexPosition = viewVertexPosition.xyz;
-    vout.normal = mul((float3x3)model.viewNormalMatrix, vertex.normal);
-    vout.uv = vertex.uv;
-    vout.modelIndex = modelIndex;
-
-    return vout;
+    return GetVertexAttributes(
+        model.modelMat, camera.view, camera.projection, model.viewNormalMatrix,
+        vertex, model.modelOffset, modelIndex
+    );
 }
 
 [NumThreads(128, 1, 1)]
