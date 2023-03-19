@@ -9,7 +9,7 @@ layout(location = 1) out uint outModelIndex;
 layout(location = 2) out vec3 outViewVertexPosition;
 layout(location = 3) out vec3 outNormal;
 
-struct PerModelData {
+struct ModelData {
     mat4 modelMat;
 	mat4 viewNormalMatrix;
     vec3 modelOffset;
@@ -23,15 +23,15 @@ layout(binding = 0) uniform CameraMatrices {
 }camera;
 
 layout(binding = 1) readonly buffer Modeldata {
-	PerModelData models[];
+	ModelData models[];
 } modelData;
 
 void main(){
-	const PerModelData modelDataInst = modelData.models[gl_BaseInstance];
+	const ModelData model = modelData.models[gl_BaseInstance];
 
-	mat4 viewSpace = camera.view * modelDataInst.modelMat;
+	mat4 viewSpace = camera.view * model.modelMat;
 
-	vec4 vertexPosition = vec4(inPosition + modelDataInst.modelOffset, 1.0);
+	vec4 vertexPosition = vec4(inPosition + model.modelOffset, 1.0);
 	vec4 viewVertexPosition = viewSpace * vertexPosition;
 
 	gl_Position = camera.projection * viewVertexPosition;
@@ -39,5 +39,5 @@ void main(){
 	outUV = inUV;
 	outModelIndex = gl_BaseInstance;
 	outViewVertexPosition = viewVertexPosition.xyz;
-	outNormal = mat3(modelDataInst.viewNormalMatrix) * inNormal;
+	outNormal = mat3(model.viewNormalMatrix) * inNormal;
 }
