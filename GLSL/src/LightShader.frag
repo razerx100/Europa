@@ -1,10 +1,12 @@
 #version 460
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) in vec2 inUV;
-flat layout(location = 1) in uint inModelIndex;
-layout(location = 2) in vec3 inViewFragmentPosition;
-layout(location = 3) in vec3 inNormal;
+layout(location = 0) in VetexIn{
+	vec2 uv;
+	uint modelIndex;
+	vec3 viewFragmentPosition;
+	vec3 normal;
+} vIn;
 
 layout(location = 0) out vec4 outColour;
 
@@ -59,7 +61,7 @@ vec4 CalculateSpecular(
     float shininess
 ) {
     vec3 viewPosition = vec3(0.0);
-    vec3 viewDirection = normalize(viewPosition - inViewFragmentPosition);
+    vec3 viewDirection = normalize(viewPosition - vIn.viewFragmentPosition);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float speculationStrength = pow(
                                     max(dot(viewDirection, reflectionDirection), 0.0), shininess
@@ -69,9 +71,11 @@ vec4 CalculateSpecular(
 }
 
 void main() {
-    Material material = materialData.materials[inModelIndex];
-    vec2 offsettedDiffuseUV = inUV * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
-    vec2 offsettedSpecularUV = inUV * material.specularTexUVRatio + material.specularTexUVOffset;
+    Material material = materialData.materials[vIn.modelIndex];
+    vec2 offsettedDiffuseUV =
+        vIn.uv * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
+    vec2 offsettedSpecularUV =
+        vIn.uv * material.specularTexUVRatio + material.specularTexUVOffset;
 
     vec4 diffuseTexColour = texture(g_textures[material.diffuseTexIndex], offsettedDiffuseUV);
     vec4 specularTexColour = texture(g_textures[material.specularTexIndex], offsettedSpecularUV);
@@ -89,8 +93,8 @@ void main() {
 
         totalAmbient += CalculateAmbient(currentLight.ambient, fragmentAmbient);
 
-        vec3 lightDirection = normalize(currentLight.position - inViewFragmentPosition);
-        vec3 normal = normalize(inNormal);
+        vec3 lightDirection = normalize(currentLight.position - vIn.viewFragmentPosition);
+        vec3 normal = normalize(vIn.normal);
 
         totalDiffuse += CalculateDiffuse(
                             lightDirection, normal, currentLight.diffuse, fragmentDiffuse

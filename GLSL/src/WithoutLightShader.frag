@@ -1,10 +1,12 @@
 #version 460
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) in vec2 inUV;
-flat layout(location = 1) in uint inModelIndex;
-layout(location = 2) in vec3 inViewFragmentPosition;
-layout(location = 3) in vec3 inNormal;
+layout(location = 0) in VetexIn{
+	vec2 uv;
+	uint modelIndex;
+	vec3 viewFragmentPosition;
+	vec3 normal;
+} vIn;
 
 layout(location = 0) out vec4 outColour;
 
@@ -43,8 +45,8 @@ layout(binding = 5) uniform FragmentData {
 } fragmentData;
 
 void main() {
-    Material material = materialData.materials[inModelIndex];
-    vec2 offsettedDiffuseUV = inUV * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
+    Material material = materialData.materials[vIn.modelIndex];
+    vec2 offsettedDiffuseUV = vIn.uv * material.diffuseTexUVRatio + material.diffuseTexUVOffset;
 
     outColour = material.diffuse * texture(
         g_textures[material.diffuseTexIndex], offsettedDiffuseUV

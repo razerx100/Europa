@@ -3,12 +3,42 @@
 #extension GL_EXT_mesh_shader : require
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
-layout(max_vertices=64, max_primitives=126) out;
+layout(max_vertices = 64, max_primitives = 126) out;
 layout(triangles) out;
 
-layout (location=0) out vec4 out0[];
-layout (location=1) perprimitiveEXT out vec4 out1[];
+layout(location = 0) out VetexOut{
+	vec2 uv;
+	uint modelIndex;
+	vec3 viewVertexPosition;
+	vec3 normal;
+} vOut[];
+
+struct ModelData {
+    mat4 modelMat;
+	mat4 viewNormalMatrix;
+    vec3 modelOffset;
+};
+
+struct Meshlet {
+	uint vertCount;
+    uint vertOffset;
+    uint primCount;
+    uint primOffset;
+};
+
+struct ModelInfo {
+    uint index;
+    uint meshletOffset;
+};
+
+layout(binding = 0) uniform CameraMatrices {
+	mat4 view;
+	mat4 projection;
+} camera;
 
 void main() {
 	SetMeshOutputsEXT(3, 1);
+
+	gl_MeshVerticesEXT[0].gl_Position = vec4(1.0);
+	gl_PrimitiveTriangleIndicesEXT[0] = uvec3(1);
 }
