@@ -7,10 +7,10 @@ layout(max_vertices = 64, max_primitives = 126) out;
 layout(triangles) out;
 
 layout(location = 0) out VetexOut{
-	vec2 uv;
-	uint modelIndex;
 	vec3 viewVertexPosition;
 	vec3 normal;
+	vec2 uv;
+	uint modelIndex;
 } vOut[];
 
 struct ModelData {

@@ -2,10 +2,10 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in VetexIn{
-	vec2 uv;
-	uint modelIndex;
 	vec3 viewFragmentPosition;
 	vec3 normal;
+	vec2 uv;
+	flat uint modelIndex;
 } vIn;
 
 layout(location = 0) out vec4 outColour;

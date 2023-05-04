@@ -5,10 +5,10 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
 
 layout(location = 0) out VetexOut{
-	vec2 uv;
-	uint modelIndex;
 	vec3 viewVertexPosition;
 	vec3 normal;
+	vec2 uv;
+	uint modelIndex;
 } vOut;
 
 struct ModelData {
