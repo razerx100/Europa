@@ -5,7 +5,7 @@ layout(location = 0) in VetexIn{
 	vec3 viewFragmentPosition;
 	vec3 normal;
 	vec2 uv;
-	uint modelIndex;
+	flat uint modelIndex;
 } vIn;
 
 layout(location = 0) out vec4 outColour;
