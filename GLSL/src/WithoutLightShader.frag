@@ -30,17 +30,17 @@ struct Light {
     vec4 specular;
 };
 
-layout(binding = 2) uniform sampler2D g_textures[];
+layout(binding = 0) uniform sampler2D g_textures[];
 
-layout(binding = 3) readonly buffer Materialdata {
+layout(binding = 1) readonly buffer Materialdata {
 	Material materials[];
 } materialData;
 
-layout(binding = 4) readonly buffer Lightdata {
+layout(binding = 2) readonly buffer Lightdata {
 	Light lights[];
 } lightData;
 
-layout(binding = 5) uniform FragmentData {
+layout(binding = 3) uniform FragmentData {
     uint lightCount;
 } fragmentData;
 

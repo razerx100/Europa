@@ -17,12 +17,12 @@ struct ModelData {
     vec3 modelOffset;
 };
 
-layout(binding = 0) uniform CameraMatrices {
+layout(binding = 4) uniform CameraMatrices {
 	mat4 view;
 	mat4 projection;
 } camera;
 
-layout(binding = 1) readonly buffer Modeldata {
+layout(binding = 5) readonly buffer Modeldata {
 	ModelData models[];
 } modelData;
 
