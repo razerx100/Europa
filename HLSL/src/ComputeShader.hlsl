@@ -106,8 +106,8 @@ bool IsModelInsideBounds(uint index) {
 }
 
 [numthreads(threadBlockSize, 1, 1)]
-void main(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex) {
-    uint threadIndex = (groupId.x * threadBlockSize) + groupIndex;
+void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex) {
+    uint threadIndex = (groupId * threadBlockSize) + groupIndex;
 
     if (cullingData.commandCount > threadIndex)
         if(IsModelInsideBounds(threadIndex)) {

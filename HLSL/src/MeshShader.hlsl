@@ -69,7 +69,5 @@ void main(
         prims[gtid] = GetPrimitive(meshlet, gtid);
 
     if (gtid < meshlet.vertCount)
-        verts[gtid] = GetVertexAttributes(
-            modelInfo.index, GetVertexIndex(meshlet, gtid)
-        );
+        verts[gtid] = GetVertexAttributes(modelInfo.index, GetVertexIndex(meshlet, gtid));
 }
