@@ -6,7 +6,7 @@ layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 layout(max_vertices = 64, max_primitives = 126) out;
 layout(triangles) out;
 
-layout(location = 0) out VetexOut{
+layout(location = 0) out VetexOutput {
 	vec3 viewVertexPosition;
 	vec3 normal;
 	vec2 uv;
@@ -45,22 +45,6 @@ layout(push_constant) uniform ModelInfo {
     uint meshletOffset;
 } modelInfo;
 
-layout(binding = 0) readonly buffer VertexData {
-	Vertex vertices[];
-} vertexData;
-
-layout(binding = 1) readonly buffer VertexIndexData {
-	uint vertexIndices[];
-} vertexIndexData;
-
-layout(binding = 2) readonly buffer PrimitiveIndexData {
-	uint primIndices[];
-} primIndexData;
-
-layout(binding = 3) readonly buffer MeshletData {
-	Meshlet meshlets[];
-} meshletData;
-
 layout(binding = 4) uniform CameraMatrices {
 	mat4 view;
 	mat4 projection;
@@ -69,6 +53,22 @@ layout(binding = 4) uniform CameraMatrices {
 layout(binding = 5) readonly buffer Modeldata {
 	ModelData models[];
 } modelData;
+
+layout(binding = 6) readonly buffer VertexData {
+	Vertex vertices[];
+} vertexData;
+
+layout(binding = 7) readonly buffer VertexIndexData {
+	uint vertexIndices[];
+} vertexIndexData;
+
+layout(binding = 8) readonly buffer PrimitiveIndexData {
+	uint primIndices[];
+} primIndexData;
+
+layout(binding = 9) readonly buffer MeshletData {
+	Meshlet meshlets[];
+} meshletData;
 
 uvec3 UnpackPrimitive(uint primitive) {
 	return uvec3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
