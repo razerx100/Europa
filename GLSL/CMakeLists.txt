@@ -44,7 +44,7 @@ foreach(SHADER ${SH_SRC})
         COMMAND ${CMAKE_COMMAND}
          -E make_directory ${CMAKE_BINARY_DIR}/${SHADER_PATH}
         COMMAND
-         ${GLSLC} ${SHADER} -o ${SPIRV} --target-spv=spv1.4
+         ${GLSLC} ${SHADER} -o ${SPIRV} --target-spv=spv1.4 "$<$<CONFIG:DEBUG>:-g>"
         COMMAND ${CMAKE_COMMAND}
          -E copy ${SPIRV} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/${SHADER_PATH}/${FILE_NAME}.spv
         DEPENDS
