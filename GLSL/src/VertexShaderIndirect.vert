@@ -10,7 +10,7 @@ layout(location = 0) out VetexOut
 	vec3 normal;
 	vec2 uv;
 	uint modelIndex;
-    uint materialIndex;
+	uint materialIndex;
 } vOut;
 
 struct ModelData
@@ -33,7 +33,7 @@ struct VertexOut
 	vec3 normal;
 	vec2 uv;
 	uint modelIndex;
-    uint materialIndex;
+	uint materialIndex;
 };
 
 layout(binding = 5) readonly buffer Modeldata
@@ -66,7 +66,7 @@ VertexOut GetVertexAttributes(
     vout.normal             = mat3(viewNormalM) * vertex.normal;
     vout.uv                 = vertex.uv;
     vout.modelIndex         = modelIndex;
-	vout.materialIndex      = materialIndex;
+    vout.materialIndex      = materialIndex;
 
     return vout;
 }
