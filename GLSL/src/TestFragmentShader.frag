@@ -36,17 +36,17 @@ struct ModelTexture
 
 layout(location = 0) out vec4 outColour;
 
-layout(binding = 0) readonly buffer ModelTextureData
+layout(set = 1, binding = 0) readonly buffer ModelTextureData
 {
 	ModelTexture textureData[];
 } modelTextureData;
 
-layout(binding = 1) readonly buffer Materialdata
+layout(set = 1, binding = 1) readonly buffer Materialdata
 {
 	Material materials[];
 } materialData;
 
-layout(binding = 2) uniform sampler2D g_textures[];
+layout(set = 1, binding = 2) uniform sampler2D g_textures[];
 
 void main()
 {

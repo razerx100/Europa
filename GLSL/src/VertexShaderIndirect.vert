@@ -36,17 +36,17 @@ struct VertexOut
 	uint materialIndex;
 };
 
-layout(binding = 5) readonly buffer Modeldata
+layout(binding = 0) readonly buffer Modeldata
 {
 	ModelData models[];
 } modelData;
 
-layout(binding = 6) readonly buffer ModelIndices
+layout(binding = 1) readonly buffer ModelIndices
 {
 	uint indices[];
 } modelIndices;
 
-layout(binding = 7) uniform CameraMatrices
+layout(binding = 2) uniform CameraMatrices
 {
 	mat4 view;
 	mat4 projection;

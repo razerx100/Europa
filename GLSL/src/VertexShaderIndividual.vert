@@ -41,12 +41,12 @@ layout(push_constant) uniform ModelIndex
     uint index;
 } modelIndex;
 
-layout(binding = 5) readonly buffer Modeldata
+layout(binding = 0) readonly buffer Modeldata
 {
 	ModelData models[];
 } modelData;
 
-layout(binding = 6) uniform CameraMatrices
+layout(binding = 1) uniform CameraMatrices
 {
 	mat4 view;
 	mat4 projection;
