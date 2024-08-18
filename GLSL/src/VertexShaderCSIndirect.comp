@@ -118,13 +118,15 @@ bool IsVertexInsideBounds(vec4 vertex, mat4 transform)
     return true;
 }
 
-bool IsModelInsideBounds(uint index)
+bool IsModelInsideBounds(uint threadIndex)
 {
-    uint modelIndex         = modelIndices.indices[index];
+    uint modelIndex         = modelIndices.indices[threadIndex];
     // A model bundle can have more than a single model. But all of the models
     // of the same Model bundle should have the same mesh. So, use the bundle
     // index to get the mesh index.
-    uint modelBundleIndex   = modelBundleIndices.indices[modelIndex];
+    // Each model index should have which bundle it belongs to. So,
+    // use the threadIndex to get both the model and model bundle indices.
+    uint modelBundleIndex   = modelBundleIndices.indices[threadIndex];
     uint meshIndex          = meshIndices.indices[modelBundleIndex];
     ModelData modelDataInst = modelData.models[modelIndex];
     MeshDetails details     = meshDetails.details[meshIndex];
@@ -147,8 +149,7 @@ bool IsModelInsideBounds(uint index)
 void main()
 {
     uint threadIndex      = gl_WorkGroupID.x * threadBlockSize + gl_LocalInvocationIndex;
-    uint modelIndex       = modelIndices.indices[threadIndex];
-    uint modelBundleIndex = modelBundleIndices.indices[modelIndex];
+    uint modelBundleIndex = modelBundleIndices.indices[threadIndex];
     CullingData cData     = cullingData.data[modelBundleIndex];
 
     uint commandEnd       = cData.commandOffset + cData.commandCount;
@@ -171,7 +172,7 @@ void main()
             // threads could try to write to the same index. But because of the atomicAdd
             // the old value should be unique for this bundle's range. The argument assignment
             // isn't atomic though.
-            uint modelWriteIndex = cullingData.data[modelIndex].commandOffset + oldCounterValue;
+            uint modelWriteIndex                  = cData.commandOffset + oldCounterValue;
             outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
         }
     }
