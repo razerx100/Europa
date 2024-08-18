@@ -36,6 +36,11 @@ struct VertexOut
 	uint materialIndex;
 };
 
+layout(push_constant) uniform Constantdata
+{
+    uint modelIndexOffset;
+} constantData;
+
 layout(binding = 0) readonly buffer Modeldata
 {
 	ModelData models[];
@@ -89,7 +94,9 @@ void SetOutputs(
 
 void main()
 {
-	const uint modelIndex = modelIndices.indices[gl_DrawID];
+	// There will be a single Dispatch invocation but one invocation of Draw
+	// per Model bundle. So, drawID will start from 0 at each invocation.
+	const uint modelIndex = modelIndices.indices[constantData.modelIndexOffset + gl_DrawID];
 	const ModelData model = modelData.models[modelIndex];
 
 	Vertex vertex;
