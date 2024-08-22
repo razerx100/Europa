@@ -93,7 +93,12 @@ layout(binding = 9) readonly buffer Meshdetails
     MeshDetails details[];
 } meshDetails;
 
-layout(binding = 10) uniform CameraMatrices
+layout(binding = 10) buffer OutputModelIndices
+{
+    uint indices[];
+} outputModelIndices;
+
+layout(binding = 11) uniform CameraMatrices
 {
 	mat4 view;
 	mat4 projection;
@@ -174,6 +179,12 @@ void main()
             // isn't atomic though.
             uint modelWriteIndex                  = cData.commandOffset + oldCounterValue;
             outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
+
+            // Since the models can be culled in any order, there is no way to tell which one
+            // was culled from the vertex shader. So, will have write the model indices of
+            // the models which weren't culled.
+            uint modelIndex                             = modelIndices.indices[threadIndex];
+            outputModelIndices.indices[modelWriteIndex] = modelIndex;
         }
     }
 }
