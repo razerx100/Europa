@@ -97,7 +97,9 @@ void main()
 	vertex.uv       = inUV;
 
     vec3 modelOffset      = model.modelOffset.xyz;
-    mat4 viewNormalMatrix = transpose(inverse(model.modelMatrix * camera.view));
+    // Probably going to calculate this on the CPU later.
+    // mat4 viewNormalMatrix = transpose(inverse(model.modelMatrix * camera.view));
+    mat4 viewNormalMatrix = model.modelMatrix;
     uint materialIndex    = floatBitsToUint(model.modelOffset.w);
 
 	SetOutputs(

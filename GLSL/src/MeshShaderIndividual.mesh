@@ -137,7 +137,9 @@ VertexOut GetVertexAttributes(uint modelIndex, uint vertexIndex)
     const ModelData model = modelData.models[modelIndex];
 
     vec3 modelOffset      = model.modelOffset.xyz;
-    mat4 viewNormalMatrix = transpose(inverse(model.modelMatrix * camera.view));
+    // Probably going to calculate this on the CPU later.
+    // mat4 viewNormalMatrix = transpose(inverse(model.modelMatrix * camera.view));
+    mat4 viewNormalMatrix = model.modelMatrix;
     uint materialIndex    = floatBitsToUint(model.modelOffset.w);
 
 	return GetVertexAttributes(

@@ -52,16 +52,13 @@ void main()
 {
     vec4 diffuse      = vec4(1.0, 1.0, 1.0, 1.0);
 
-    if(materialData.materials.length() > vIn.materialIndex)
-    {
-        Material material = materialData.materials[vIn.materialIndex];
-        diffuse           = material.diffuse;
-    }
+    Material material = materialData.materials[vIn.materialIndex];
+    diffuse           = material.diffuse;
 
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
     UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
 
-    vec2 offsettedDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
+    vec2 offsettedDiffuseUV  = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
 
     outColour = diffuse * texture(
         g_textures[textureInfo.diffuseTexIndex], offsettedDiffuseUV
