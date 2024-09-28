@@ -25,6 +25,7 @@ struct ModelTexture
 StructuredBuffer<ModelTexture> modelTextureData : register(t0, space1);
 StructuredBuffer<Material>     materialData     : register(t1, space1);
 Texture2D g_textures[]                          : register(t2, space1);
+
 SamplerState samplerState                       : register(s0);
 
 float4 main(

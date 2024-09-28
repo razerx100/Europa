@@ -111,13 +111,13 @@ bool IsVertexInsideBounds(vec4 vertex, mat4 transform)
 
     MaxBounds mBounds = constantData.bounds;
 
-    if(mBounds.xBounds.x < vertex.x || vertex.x < mBounds.xBounds.y)
+    if (mBounds.xBounds.x < vertex.x || vertex.x < mBounds.xBounds.y)
         return false;
 
-    if(mBounds.yBounds.x < vertex.y || vertex.y < mBounds.yBounds.y)
+    if (mBounds.yBounds.x < vertex.y || vertex.y < mBounds.yBounds.y)
         return false;
 
-    if(mBounds.zBounds.x < vertex.z || vertex.z < mBounds.zBounds.y)
+    if (mBounds.zBounds.x < vertex.z || vertex.z < mBounds.zBounds.y)
         return false;
 
     return true;
@@ -140,7 +140,7 @@ bool IsModelInsideBounds(uint threadIndex)
     mat4 transform   = camera.projection * camera.view * modelDataInst.modelMatrix;
     uint boundEnd    = details.boundOffset + details.boundCount;
 
-    for(uint index = details.boundOffset; index < boundEnd; ++index)
+    for (uint index = details.boundOffset; index < boundEnd; ++index)
     {
         vec4 boundVertex = vec4(meshBounds.bounds[index] + modelOffset, 1.0);
 
