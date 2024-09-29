@@ -33,6 +33,7 @@ struct ConstantData
 };
 
 StructuredBuffer<ModelData> modelData     : register(t0);
+
 ConstantBuffer<ConstantData> constantData : register(b0);
 ConstantBuffer<CameraMatrices> cameraData : register(b1);
 

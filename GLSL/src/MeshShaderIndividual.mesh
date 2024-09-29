@@ -183,7 +183,7 @@ void main()
 
 		VertexOut pvOut = GetVertexAttributes(
 			modelDetails.modelIndex, GetVertexIndex(vertexIndicesOffset, gtid)
-			);
+		);
 
 		gl_MeshVerticesEXT[gtid].gl_Position = pvOut.glPosition;
 
