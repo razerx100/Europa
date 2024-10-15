@@ -49,6 +49,7 @@ struct CameraMatrices
 struct ConstantData
 {
     MaxBounds maxBounds;
+    uint      modelCount;
 };
 
 ConstantBuffer<ConstantData> constantData        : register(b0);
@@ -116,33 +117,37 @@ bool IsModelInsideBounds(uint threadIndex)
 void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint threadIndex      = groupId * threadBlockSize + groupIndex;
-    uint modelBundleIndex = modelBundleIndices[threadIndex];
-    CullingData cData     = cullingData[modelBundleIndex];
 
-    uint commandEnd       = cData.commandOffset + cData.commandCount;
-
-    // Only process the models which are in the range of the bundle's commands.
-    if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
+    if (threadIndex < constantData.modelCount)
     {
-        if (IsModelInsideBounds(threadIndex))
+        uint modelBundleIndex = modelBundleIndices[threadIndex];
+        CullingData cData     = cullingData[modelBundleIndex];
+
+        uint commandEnd       = cData.commandOffset + cData.commandCount;
+
+        // Only process the models which are in the range of the bundle's commands.
+        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
         {
-            // If the model is inside the bounds, increase the counter by 1.
-            // Using the bundle index to index, because each bundle should have its
-            // own counter and arguments range.
-            uint oldCounterValue = 0u;
+            if (IsModelInsideBounds(threadIndex))
+            {
+                // If the model is inside the bounds, increase the counter by 1.
+                // Using the bundle index to index, because each bundle should have its
+                // own counter and arguments range.
+                uint oldCounterValue = 0u;
 
-            InterlockedAdd(outputCounters[modelBundleIndex], 1, oldCounterValue);
+                InterlockedAdd(outputCounters[modelBundleIndex], 1, oldCounterValue);
 
-            // The argument buffer for this model bundle should start at the commandOffset.
-            // Since each argument represent each model, we should put the arguments of the
-            // models which are inside the bounds back to back. The old counter value + the
-            // offset should be the latest available model index.
-            // The reason I am doing it before assigning the argument is because multiple
-            // threads could try to write to the same index. But because of the atomicAdd
-            // the old value should be unique for this bundle's range. The argument assignment
-            // isn't atomic though.
-            uint modelWriteIndex        = cData.commandOffset + oldCounterValue;
-            outputData[modelWriteIndex] = inputData[threadIndex];
+                // The argument buffer for this model bundle should start at the commandOffset.
+                // Since each argument represent each model, we should put the arguments of the
+                // models which are inside the bounds back to back. The old counter value + the
+                // offset should be the latest available model index.
+                // The reason I am doing it before assigning the argument is because multiple
+                // threads could try to write to the same index. But because of the atomicAdd
+                // the old value should be unique for this bundle's range. The argument assignment
+                // isn't atomic though.
+                uint modelWriteIndex        = cData.commandOffset + oldCounterValue;
+                outputData[modelWriteIndex] = inputData[threadIndex];
+            }
         }
     }
 }
