@@ -41,6 +41,7 @@ struct MeshDetails
 layout(push_constant) uniform Constantdata
 {
     MaxBounds bounds;
+    uint      modelCount;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
@@ -153,38 +154,42 @@ bool IsModelInsideBounds(uint threadIndex)
 
 void main()
 {
-    uint threadIndex      = gl_WorkGroupID.x * threadBlockSize + gl_LocalInvocationIndex;
-    uint modelBundleIndex = modelBundleIndices.indices[threadIndex];
-    CullingData cData     = cullingData.data[modelBundleIndex];
+    uint threadIndex = gl_WorkGroupID.x * threadBlockSize + gl_LocalInvocationIndex;
 
-    uint commandEnd       = cData.commandOffset + cData.commandCount;
-
-    // Only process the models which are in the range of the bundle's commands.
-    if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
+    if (threadIndex < constantData.modelCount)
     {
-        if (IsModelInsideBounds(threadIndex))
+        uint modelBundleIndex = modelBundleIndices.indices[threadIndex];
+        CullingData cData     = cullingData.data[modelBundleIndex];
+
+        uint commandEnd       = cData.commandOffset + cData.commandCount;
+
+        // Only process the models which are in the range of the bundle's commands.
+        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
         {
-            // If the model is inside the bounds, increase the counter by 1.
-            // Using the bundle index to index, because each bundle should have its
-            // own counter and arguments range.
-            uint oldCounterValue = atomicAdd(outputCounters.counters[modelBundleIndex], 1);
+            if (IsModelInsideBounds(threadIndex))
+            {
+                // If the model is inside the bounds, increase the counter by 1.
+                // Using the bundle index to index, because each bundle should have its
+                // own counter and arguments range.
+                uint oldCounterValue = atomicAdd(outputCounters.counters[modelBundleIndex], 1);
 
-            // The argument buffer for this model bundle should start at the commandOffset.
-            // Since each argument represent each model, we should put the arguments of the
-            // models which are inside the bounds back to back. The old counter value + the
-            // offset should be the latest available model index.
-            // The reason I am doing it before assigning the argument is because multiple
-            // threads could try to write to the same index. But because of the atomicAdd
-            // the old value should be unique for this bundle's range. The argument assignment
-            // isn't atomic though.
-            uint modelWriteIndex                  = cData.commandOffset + oldCounterValue;
-            outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
+                // The argument buffer for this model bundle should start at the commandOffset.
+                // Since each argument represent each model, we should put the arguments of the
+                // models which are inside the bounds back to back. The old counter value + the
+                // offset should be the latest available model index.
+                // The reason I am doing it before assigning the argument is because multiple
+                // threads could try to write to the same index. But because of the atomicAdd
+                // the old value should be unique for this bundle's range. The argument assignment
+                // isn't atomic though.
+                uint modelWriteIndex                  = cData.commandOffset + oldCounterValue;
+                outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
 
-            // Since the models can be culled in any order, there is no way to tell which one
-            // was culled from the vertex shader. So, will have write the model indices of
-            // the models which weren't culled.
-            uint modelIndex                             = modelIndices.indices[threadIndex];
-            outputModelIndices.indices[modelWriteIndex] = modelIndex;
+                // Since the models can be culled in any order, there is no way to tell which one
+                // was culled from the vertex shader. So, will have write the model indices of
+                // the models which weren't culled.
+                uint modelIndex                             = modelIndices.indices[threadIndex];
+                outputModelIndices.indices[modelWriteIndex] = modelIndex;
+            }
         }
     }
 }

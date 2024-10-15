@@ -116,7 +116,7 @@ bool IsModelInsideBounds(uint threadIndex)
 [numthreads(threadBlockSize, 1, 1)]
 void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint threadIndex      = groupId * threadBlockSize + groupIndex;
+    uint threadIndex = groupId * threadBlockSize + groupIndex;
 
     if (threadIndex < constantData.modelCount)
     {
