@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 file(
     GLOB_RECURSE SH_SRC
-     src/*.frag src/*.vert src/*.comp src/*.mesh
+     src/*.frag src/*.vert src/*.comp src/*.mesh src/*.task
 )
 
 find_program(
@@ -53,5 +53,3 @@ foreach(SHADER ${SH_SRC})
 endforeach(SHADER)
 
 source_group("Source Files" FILES ${SH_SRC})
-
-
