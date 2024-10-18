@@ -1,0 +1,32 @@
+#version 460
+
+#extension GL_EXT_mesh_shader            : require
+#extension GL_KHR_shader_subgroup_ballot : require
+
+const uint TASK_GROUP_SIZE = 32;
+
+layout(local_size_x = TASK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform ConstantData
+{
+	uint meshletCount;
+} constantData;
+
+void main()
+{
+	bool doesMeshletExist = false;
+
+	if (gl_LocalInvocationIndex < constantData.meshletCount)
+	{
+		doesMeshletExist = true;
+	}
+
+	uvec4 validVotes = subgroupBallot(doesMeshletExist);
+
+	if (gl_LocalInvocationIndex == 0)
+	{
+		uint validCount = subgroupBallotBitCount(validVotes);
+
+		EmitMeshTasksEXT(validCount, 1, 1);
+	}
+}
