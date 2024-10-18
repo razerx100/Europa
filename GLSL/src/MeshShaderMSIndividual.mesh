@@ -56,14 +56,15 @@ struct MeshDetails
 
 struct ModelDetails
 {
-	uint modelIndex;
+	uint meshletCount;
 	uint meshletOffset;
+	uint modelIndex;
 };
 
 layout(push_constant) uniform ConstantData
 {
-	MeshDetails  meshDetails;
 	ModelDetails modelDetails;
+	MeshDetails  meshDetails;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
