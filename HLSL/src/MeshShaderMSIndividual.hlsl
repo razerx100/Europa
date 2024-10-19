@@ -63,8 +63,8 @@ struct ConstantData
 	MeshDetails  meshDetails;
 };
 
-ConstantBuffer<ConstantData> constantData : register(b0);
-ConstantBuffer<CameraMatrices> cameraData : register(b1);
+ConstantBuffer<ConstantData> constantData : register(b1);
+ConstantBuffer<CameraMatrices> cameraData : register(b2);
 
 StructuredBuffer<ModelData> modelData     : register(t0);
 StructuredBuffer<Meshlet> meshletData     : register(t1);
