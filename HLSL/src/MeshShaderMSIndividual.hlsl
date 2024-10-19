@@ -1,3 +1,5 @@
+#define AS_GROUP_SIZE 32
+
 struct VertexOut
 {
 	float3 viewVertexPosition : ViewPosition;
@@ -10,8 +12,8 @@ struct VertexOut
 
 struct ModelData
 {
-    matrix modelMatrix;
-    float4 modelOffset; // materialIndex on the last component.
+	matrix modelMatrix;
+	float4 modelOffset; // materialIndex on the last component.
 };
 
 struct Meshlet
@@ -45,14 +47,20 @@ struct MeshDetails
 
 struct ModelDetails
 {
-	uint modelIndex;
+	uint meshletCount;
 	uint meshletOffset;
+	uint modelIndex;
+};
+
+struct Payload
+{
+	uint meshletIndices[AS_GROUP_SIZE];
 };
 
 struct ConstantData
 {
-	MeshDetails  meshDetails;
 	ModelDetails modelDetails;
+	MeshDetails  meshDetails;
 };
 
 ConstantBuffer<ConstantData> constantData : register(b0);
@@ -119,6 +127,7 @@ VertexOut GetVertexAttributes(uint modelIndex, uint vertexIndex)
 [OutputTopology("triangle")]
 void main(
 	uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
+	in payload Payload payload,
 	out indices uint3 prims[126], out vertices VertexOut verts[64]
 ) {
 	MeshDetails meshDetails   = constantData.meshDetails;
