@@ -7,6 +7,13 @@ const uint TASK_GROUP_SIZE = 32;
 
 layout(local_size_x = TASK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
+struct Payload
+{
+    uint meshletIndices[TASK_GROUP_SIZE];
+};
+
+taskPayloadSharedEXT Payload s_Payload;
+
 layout(push_constant) uniform ConstantData
 {
 	uint meshletCount;
@@ -23,10 +30,8 @@ void main()
 
 	uvec4 validVotes = subgroupBallot(doesMeshletExist);
 
-	if (gl_LocalInvocationIndex == 0)
-	{
-		uint validCount = subgroupBallotBitCount(validVotes);
+	uint validCount  = subgroupBallotBitCount(validVotes);
 
-		EmitMeshTasksEXT(validCount, 1, 1);
-	}
+	// The arguments are taken on the first invocation.
+	EmitMeshTasksEXT(validCount, 1, 1);
 }
