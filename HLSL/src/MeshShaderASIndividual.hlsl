@@ -3,6 +3,7 @@
 struct ConstantData
 {
 	uint meshletCount;
+	uint padding[3];
 };
 
 struct Payload

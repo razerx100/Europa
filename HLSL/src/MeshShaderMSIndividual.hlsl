@@ -50,6 +50,7 @@ struct ModelDetails
 	uint meshletCount;
 	uint meshletOffset;
 	uint modelIndex;
+	uint padding;
 };
 
 struct Payload
