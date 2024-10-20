@@ -45,6 +45,9 @@ struct MeshDetails
 	uint meshletOffset;
 };
 
+// The constants are laid out as vec4s. The padding here
+// isn't necessary but it would still be padded implicitly.
+// So, just doing it explicitly.
 struct ModelDetails
 {
 	uint meshletCount;
