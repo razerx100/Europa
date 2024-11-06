@@ -1,0 +1,225 @@
+#version 460
+
+#define threadBlockSize 64
+
+layout(local_size_x = threadBlockSize, local_size_y = 1, local_size_z = 1) in;
+
+struct ModelData
+{
+    mat4 modelMatrix;
+    vec4 modelOffset; // materialIndex on the last component.
+    uint meshIndex;
+    uint padding;
+};
+
+struct IndirectArguments
+{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int  vertexOffset;
+    uint firstInstance;
+};
+
+struct CullingData
+{
+    uint commandCount;
+    uint commandOffset;
+};
+
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
+struct AABB
+{
+    vec4 maxAxes;
+    vec4 minAxes;
+};
+
+struct PerModelData
+{
+    uint modelIndex;
+    uint modelBundleIndex;
+};
+
+struct PerMeshData
+{
+    AABB aabb;
+};
+
+struct PerMeshBundleData
+{
+    uint meshOffset;
+};
+
+layout(push_constant) uniform Constantdata
+{
+    uint modelCount;
+} constantData;
+
+layout(binding = 0) readonly buffer Modeldata
+{
+	ModelData models[];
+} modelData;
+
+layout(binding = 1) readonly buffer PerModelDataBuffer
+{
+	PerModelData data[];
+} perModelData;
+
+layout(binding = 2) readonly buffer InputArguments
+{
+    IndirectArguments arguments[];
+} inputData;
+
+layout(binding = 3) readonly buffer Cullingdata
+{
+    CullingData data[];
+} cullingData;
+
+layout(binding = 4) buffer OutputArguments
+{
+    IndirectArguments arguments[];
+} outputData;
+
+layout(binding = 5) buffer OutputCounter
+{
+    uint counters[];
+} outputCounters;
+
+layout(binding = 6) readonly buffer PerMeshDataBuffer
+{
+    PerMeshData data[];
+} perMeshData;
+
+layout(binding = 7) readonly buffer PerMeshBundleDataBuffer
+{
+    PerMeshBundleData data[];
+} perMeshBundleData;
+
+layout(binding = 8) readonly buffer MeshBundleIndices
+{
+    uint indices[];
+} meshBundleIndices;
+
+layout(binding = 9) buffer OutputModelIndices
+{
+    uint indices[];
+} outputModelIndices;
+
+layout(binding = 10) uniform CameraMatrices
+{
+	mat4    view;
+	mat4    projection;
+    Frustum frustum;
+} camera;
+
+bool IsOnOrForwardOnPlane(vec4 plane, vec4 extents, vec4 centre)
+{
+    float radius = extents.x * plane.x + extents.y * plane.y + extents.z * plane.z;
+
+    return -radius <= dot(plane, centre);
+}
+
+bool IsModelInsideFrustum(uint threadIndex)
+{
+    PerModelData perModelData = perModelData.data[threadIndex];
+
+    uint modelIndex           = perModelData.modelIndex;
+    uint modelBundleIndex     = perModelData.modelBundleIndex;
+    uint meshBundleIndex      = meshBundleIndices.indices[modelBundleIndex];
+    uint meshOffset           = perMeshBundleData.data[meshBundleIndex].meshOffset;
+    ModelData modelDataInst   = modelData.models[modelIndex];
+
+    vec3 modelOffset   = modelDataInst.modelOffset.xyz;
+    mat4 transformClip = camera.projection * camera.view * modelDataInst.modelMatrix;
+
+    AABB aabb          = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
+
+    vec4 centre        = (aabb.maxAxes + aabb.minAxes) * 0.5;
+    vec4 extents       = vec4(
+        aabb.maxAxes.x - centre.x,
+        aabb.maxAxes.y - centre.y,
+        aabb.maxAxes.z - centre.z,
+        1.0
+    );
+
+    vec4 right   = transformClip[0] * extents.x;
+    vec4 up      = transformClip[1] * extents.y;
+    vec4 forward = transformClip[2] * extents.z;
+
+    float newX = abs(dot(vec4(1.0, 0.0, 0.0, 1.0), right))
+        + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), up))
+        + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), forward));
+
+    float newY = abs(dot(vec4(0.0, 1.0, 0.0, 1.0), right))
+        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), up))
+        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), forward));
+
+    float newZ = abs(dot(vec4(0.0, 0.0, 1.0, 1.0), right))
+        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), up))
+        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), forward));
+
+    vec4 scaledExtents     = vec4(newX, newY, newZ, 1.0);
+    vec4 transformedCentre = transformClip * centre;
+
+    Frustum frustum        = camera.frustum;
+
+    bool isModelInside     = IsOnOrForwardOnPlane(frustum.left, scaledExtents, transformedCentre)
+        && IsOnOrForwardOnPlane(frustum.right,  scaledExtents, transformedCentre)
+        && IsOnOrForwardOnPlane(frustum.bottom, scaledExtents, transformedCentre)
+        && IsOnOrForwardOnPlane(frustum.top,    scaledExtents, transformedCentre)
+        && IsOnOrForwardOnPlane(frustum.near,   scaledExtents, transformedCentre)
+        && IsOnOrForwardOnPlane(frustum.far,    scaledExtents, transformedCentre);
+
+    return isModelInside;
+}
+
+void main()
+{
+    uint threadIndex = gl_WorkGroupID.x * threadBlockSize + gl_LocalInvocationIndex;
+
+    if (threadIndex < constantData.modelCount)
+    {
+        uint modelBundleIndex = perModelData.data[threadIndex].modelBundleIndex;
+        CullingData cData     = cullingData.data[modelBundleIndex];
+
+        uint commandEnd       = cData.commandOffset + cData.commandCount;
+
+        // Only process the models which are in the range of the bundle's commands.
+        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
+        {
+            if (IsModelInsideFrustum(threadIndex))
+            {
+                // If the model is inside the bounds, increase the counter by 1.
+                // Using the bundle index to index, because each bundle should have its
+                // own counter and arguments range.
+                uint oldCounterValue = atomicAdd(outputCounters.counters[modelBundleIndex], 1);
+
+                // The argument buffer for this model bundle should start at the commandOffset.
+                // Since each argument represent each model, we should put the arguments of the
+                // models which are inside the bounds back to back. The old counter value + the
+                // offset should be the latest available model index.
+                // The reason I am doing it before assigning the argument is because multiple
+                // threads could try to write to the same index. But because of the atomicAdd
+                // the old value should be unique for this bundle's range. The argument assignment
+                // isn't atomic though.
+                uint modelWriteIndex                  = cData.commandOffset + oldCounterValue;
+                outputData.arguments[modelWriteIndex] = inputData.arguments[threadIndex];
+
+                // Since the models can be culled in any order, there is no way to tell which one
+                // was culled from the vertex shader. So, will have write the model indices of
+                // the models which weren't culled.
+                uint modelIndex                             = perModelData.data[threadIndex].modelIndex;
+                outputModelIndices.indices[modelWriteIndex] = modelIndex;
+            }
+        }
+    }
+}

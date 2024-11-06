@@ -19,6 +19,16 @@ struct ModelData
     vec4 modelOffset; // materialIndex on the last component.
 };
 
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
 struct Vertex
 {
     vec3 position;
@@ -53,8 +63,9 @@ layout(binding = 1) readonly buffer ModelIndices
 
 layout(binding = 2) uniform CameraMatrices
 {
-	mat4 view;
-	mat4 projection;
+	mat4    view;
+	mat4    projection;
+	Frustum frustum;
 } camera;
 
 VertexOut GetVertexAttributes(
