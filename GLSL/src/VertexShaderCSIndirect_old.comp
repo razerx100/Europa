@@ -138,8 +138,9 @@ bool IsModelInsideFrustum(uint threadIndex)
     uint meshOffset           = perMeshBundleData.data[meshBundleIndex].meshOffset;
     ModelData modelDataInst   = modelData.models[modelIndex];
 
-    vec3 modelOffset   = modelDataInst.modelOffset.xyz;
-    mat4 transformClip = camera.projection * camera.view * modelDataInst.modelMatrix;
+    vec4 modelOffset    = modelDataInst.modelOffset;
+    mat4 transformWorld = camera.view * modelDataInst.modelMatrix;
+    mat4 transformClip  = camera.projection * transformWorld;
 
     AABB aabb          = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
 
@@ -168,7 +169,7 @@ bool IsModelInsideFrustum(uint threadIndex)
         + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), forward));
 
     vec4 scaledExtents     = vec4(newX, newY, newZ, 1.0);
-    vec4 transformedCentre = transformClip * centre;
+    vec4 transformedCentre = camera.projection * transformWorld * (centre + modelOffset);
 
     Frustum frustum        = camera.frustum;
 
