@@ -8,8 +8,6 @@ struct ModelData
 {
     mat4 modelMatrix;
     vec4 modelOffset; // materialIndex on the last component.
-    uint meshIndex;
-    uint padding;
 };
 
 struct IndirectArguments
@@ -27,41 +25,23 @@ struct CullingData
     uint commandOffset;
 };
 
-struct Frustum
+struct MaxBounds
 {
-	vec4 left;
-	vec4 right;
-	vec4 bottom;
-	vec4 top;
-	vec4 near;
-	vec4 far;
+    vec2 xBounds;
+    vec2 yBounds;
+    vec2 zBounds;
 };
 
-struct AABB
+struct MeshDetails
 {
-    vec4 maxAxes;
-    vec4 minAxes;
-};
-
-struct PerModelData
-{
-    uint modelIndex;
-    uint modelBundleIndex;
-};
-
-struct PerMeshData
-{
-    AABB aabb;
-};
-
-struct PerMeshBundleData
-{
-    uint meshOffset;
+    uint boundOffset;
+    uint boundCount;
 };
 
 layout(push_constant) uniform Constantdata
 {
-    uint modelCount;
+    MaxBounds bounds;
+    uint      modelCount;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
@@ -69,10 +49,10 @@ layout(binding = 0) readonly buffer Modeldata
 	ModelData models[];
 } modelData;
 
-layout(binding = 1) readonly buffer PerModelDataBuffer
+layout(binding = 1) readonly buffer ModelIndices
 {
-	PerModelData data[];
-} perModelData;
+	uint indices[];
+} modelIndices;
 
 layout(binding = 2) readonly buffer InputArguments
 {
@@ -94,93 +74,82 @@ layout(binding = 5) buffer OutputCounter
     uint counters[];
 } outputCounters;
 
-layout(binding = 6) readonly buffer PerMeshDataBuffer
-{
-    PerMeshData data[];
-} perMeshData;
-
-layout(binding = 7) readonly buffer PerMeshBundleDataBuffer
-{
-    PerMeshBundleData data[];
-} perMeshBundleData;
-
-layout(binding = 8) readonly buffer MeshBundleIndices
+layout(binding = 6) readonly buffer ModelBundleIndices
 {
     uint indices[];
-} meshBundleIndices;
+} modelBundleIndices;
 
-layout(binding = 9) buffer OutputModelIndices
+layout(binding = 7) readonly buffer MeshBounds
+{
+    vec3 bounds[];
+} meshBounds;
+
+layout(binding = 8) readonly buffer MeshIndices
+{
+    uint indices[];
+} meshIndices;
+
+layout(binding = 9) readonly buffer Meshdetails
+{
+    MeshDetails details[];
+} meshDetails;
+
+layout(binding = 10) buffer OutputModelIndices
 {
     uint indices[];
 } outputModelIndices;
 
-layout(binding = 10) uniform CameraMatrices
+layout(binding = 11) uniform CameraMatrices
 {
-	mat4    view;
-	mat4    projection;
-    Frustum frustum;
+	mat4 view;
+	mat4 projection;
 } camera;
 
-bool IsOnOrForwardOnPlane(vec4 plane, vec4 extents, vec4 centre)
+bool IsVertexInsideBounds(vec4 vertex, mat4 transform)
 {
-    float radius = extents.x * plane.x + extents.y * plane.y + extents.z * plane.z;
+    vertex  = transform * vertex;
+    vertex /= vertex.w;
 
-    return -radius <= dot(plane, centre);
+    MaxBounds mBounds = constantData.bounds;
+
+    if (mBounds.xBounds.x < vertex.x || vertex.x < mBounds.xBounds.y)
+        return false;
+
+    if (mBounds.yBounds.x < vertex.y || vertex.y < mBounds.yBounds.y)
+        return false;
+
+    if (mBounds.zBounds.x < vertex.z || vertex.z < mBounds.zBounds.y)
+        return false;
+
+    return true;
 }
 
-bool IsModelInsideFrustum(uint threadIndex)
+bool IsModelInsideBounds(uint threadIndex)
 {
-    PerModelData perModelData = perModelData.data[threadIndex];
+    uint modelIndex         = modelIndices.indices[threadIndex];
+    // A model bundle can have more than a single model. But all of the models
+    // of the same Model bundle should have the same mesh. So, use the bundle
+    // index to get the mesh index.
+    // Each model index should have which bundle it belongs to. So,
+    // use the threadIndex to get both the model and model bundle indices.
+    uint modelBundleIndex   = modelBundleIndices.indices[threadIndex];
+    uint meshIndex          = meshIndices.indices[modelBundleIndex];
+    ModelData modelDataInst = modelData.models[modelIndex];
+    MeshDetails details     = meshDetails.details[meshIndex];
 
-    uint modelIndex           = perModelData.modelIndex;
-    uint modelBundleIndex     = perModelData.modelBundleIndex;
-    uint meshBundleIndex      = meshBundleIndices.indices[modelBundleIndex];
-    uint meshOffset           = perMeshBundleData.data[meshBundleIndex].meshOffset;
-    ModelData modelDataInst   = modelData.models[modelIndex];
+    vec3 modelOffset = modelDataInst.modelOffset.xyz;
+    mat4 transform   = camera.projection * camera.view * modelDataInst.modelMatrix;
+    uint boundEnd    = details.boundOffset + details.boundCount;
 
-    vec4 modelOffset    = modelDataInst.modelOffset;
-    mat4 transformWorld = camera.view * modelDataInst.modelMatrix;
-    mat4 transformClip  = camera.projection * transformWorld;
+    for (uint index = details.boundOffset; index < boundEnd; ++index)
+    {
+        vec4 boundVertex = vec4(meshBounds.bounds[index] + modelOffset, 1.0);
 
-    AABB aabb          = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
+        if (IsVertexInsideBounds(boundVertex, transform))
+            return true;
+    }
 
-    vec4 centre        = (aabb.maxAxes + aabb.minAxes) * 0.5;
-    vec4 extents       = vec4(
-        aabb.maxAxes.x - centre.x,
-        aabb.maxAxes.y - centre.y,
-        aabb.maxAxes.z - centre.z,
-        1.0
-    );
-
-    vec4 right   = transformClip[0] * extents.x;
-    vec4 up      = transformClip[1] * extents.y;
-    vec4 forward = transformClip[2] * extents.z;
-
-    float newX = abs(dot(vec4(1.0, 0.0, 0.0, 1.0), right))
-        + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), up))
-        + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), forward));
-
-    float newY = abs(dot(vec4(0.0, 1.0, 0.0, 1.0), right))
-        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), up))
-        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), forward));
-
-    float newZ = abs(dot(vec4(0.0, 0.0, 1.0, 1.0), right))
-        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), up))
-        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), forward));
-
-    vec4 scaledExtents     = vec4(newX, newY, newZ, 1.0);
-    vec4 transformedCentre = camera.projection * transformWorld * (centre + modelOffset);
-
-    Frustum frustum        = camera.frustum;
-
-    bool isModelInside     = IsOnOrForwardOnPlane(frustum.left, scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.right,  scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.bottom, scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.top,    scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.near,   scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.far,    scaledExtents, transformedCentre);
-
-    return isModelInside;
+    return false;
 }
 
 void main()
@@ -189,7 +158,7 @@ void main()
 
     if (threadIndex < constantData.modelCount)
     {
-        uint modelBundleIndex = perModelData.data[threadIndex].modelBundleIndex;
+        uint modelBundleIndex = modelBundleIndices.indices[threadIndex];
         CullingData cData     = cullingData.data[modelBundleIndex];
 
         uint commandEnd       = cData.commandOffset + cData.commandCount;
@@ -197,7 +166,7 @@ void main()
         // Only process the models which are in the range of the bundle's commands.
         if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
         {
-            if (IsModelInsideFrustum(threadIndex))
+            if (IsModelInsideBounds(threadIndex))
             {
                 // If the model is inside the bounds, increase the counter by 1.
                 // Using the bundle index to index, because each bundle should have its
@@ -218,7 +187,7 @@ void main()
                 // Since the models can be culled in any order, there is no way to tell which one
                 // was culled from the vertex shader. So, will have write the model indices of
                 // the models which weren't culled.
-                uint modelIndex                             = perModelData.data[threadIndex].modelIndex;
+                uint modelIndex                             = modelIndices.indices[threadIndex];
                 outputModelIndices.indices[modelWriteIndex] = modelIndex;
             }
         }

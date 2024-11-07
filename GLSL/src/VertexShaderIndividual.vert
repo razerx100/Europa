@@ -17,6 +17,8 @@ struct ModelData
 {
     mat4 modelMatrix;
     vec4 modelOffset; // materialIndex on the last component.
+    uint meshIndex;
+    uint padding;
 };
 
 struct Frustum
