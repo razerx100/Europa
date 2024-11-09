@@ -45,8 +45,8 @@ struct AABB
 
 struct PerModelData
 {
-    uint modelIndex;
     uint modelBundleIndex;
+    uint modelIndex;
 };
 
 struct PerMeshData
