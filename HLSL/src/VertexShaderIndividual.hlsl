@@ -12,6 +12,18 @@ struct ModelData
 {
     matrix modelMatrix;
     float4 modelOffset; // materialIndex on the last component.
+    uint   meshIndex;
+    uint   padding;
+};
+
+struct Frustum
+{
+	float4 left;
+	float4 right;
+	float4 bottom;
+	float4 top;
+	float4 near;
+	float4 far;
 };
 
 struct Vertex
@@ -23,8 +35,9 @@ struct Vertex
 
 struct CameraMatrices
 {
-    matrix view;
-    matrix projection;
+    matrix  view;
+    matrix  projection;
+    Frustum frustum;
 };
 
 struct ConstantData

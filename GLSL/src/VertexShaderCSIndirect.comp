@@ -121,7 +121,7 @@ layout(binding = 10) uniform CameraMatrices
     Frustum frustum;
 } camera;
 
-bool IsOnOrForwardOnPlane(vec4 plane, vec4 extents, vec4 centre)
+bool IsOnOrForwardPlane(vec4 plane, vec4 extents, vec4 centre)
 {
     float radius = extents.x * plane.x + extents.y * plane.y + extents.z * plane.z;
 
@@ -130,22 +130,23 @@ bool IsOnOrForwardOnPlane(vec4 plane, vec4 extents, vec4 centre)
 
 bool IsModelInsideFrustum(uint threadIndex)
 {
-    PerModelData perModelData = perModelData.data[threadIndex];
+    PerModelData perModelDataInst = perModelData.data[threadIndex];
 
-    uint modelIndex           = perModelData.modelIndex;
-    uint modelBundleIndex     = perModelData.modelBundleIndex;
-    uint meshBundleIndex      = meshBundleIndices.indices[modelBundleIndex];
-    uint meshOffset           = perMeshBundleData.data[meshBundleIndex].meshOffset;
-    ModelData modelDataInst   = modelData.models[modelIndex];
+    uint modelIndex         = perModelDataInst.modelIndex;
+    uint modelBundleIndex   = perModelDataInst.modelBundleIndex;
+    uint meshBundleIndex    = meshBundleIndices.indices[modelBundleIndex];
+    uint meshOffset         = perMeshBundleData.data[meshBundleIndex].meshOffset;
+    ModelData modelDataInst = modelData.models[modelIndex];
 
     vec4 modelOffset    = modelDataInst.modelOffset;
     mat4 transformWorld = camera.view * modelDataInst.modelMatrix;
     mat4 transformClip  = camera.projection * transformWorld;
 
-    AABB aabb          = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
+    // Local space
+    AABB aabb    = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
 
-    vec4 centre        = (aabb.maxAxes + aabb.minAxes) * 0.5;
-    vec4 extents       = vec4(
+    vec4 centre  = (aabb.maxAxes + aabb.minAxes) * 0.5;
+    vec4 extents = vec4(
         aabb.maxAxes.x - centre.x,
         aabb.maxAxes.y - centre.y,
         aabb.maxAxes.z - centre.z,
@@ -156,6 +157,7 @@ bool IsModelInsideFrustum(uint threadIndex)
     vec4 up      = transformClip[1] * extents.y;
     vec4 forward = transformClip[2] * extents.z;
 
+    // The magnitude of the extents in the Clip space
     float newX = abs(dot(vec4(1.0, 0.0, 0.0, 1.0), right))
         + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), up))
         + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), forward));
@@ -168,17 +170,20 @@ bool IsModelInsideFrustum(uint threadIndex)
         + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), up))
         + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), forward));
 
+    // We don't need the homogenous component here. As this will be used
+    // for calculating the radius only and the x, y and z should already
+    // been transformed to be in the clip space.
     vec4 scaledExtents     = vec4(newX, newY, newZ, 1.0);
     vec4 transformedCentre = camera.projection * transformWorld * (centre + modelOffset);
 
-    Frustum frustum        = camera.frustum;
+    Frustum frustum    = camera.frustum;
 
-    bool isModelInside     = IsOnOrForwardOnPlane(frustum.left, scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.right,  scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.bottom, scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.top,    scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.near,   scaledExtents, transformedCentre)
-        && IsOnOrForwardOnPlane(frustum.far,    scaledExtents, transformedCentre);
+    bool isModelInside = IsOnOrForwardPlane(frustum.left, scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.right,  scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.bottom, scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.top,    scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.near,   scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.far,    scaledExtents, transformedCentre);
 
     return isModelInside;
 }
@@ -199,14 +204,14 @@ void main()
         {
             if (IsModelInsideFrustum(threadIndex))
             {
-                // If the model is inside the bounds, increase the counter by 1.
+                // If the model is inside the frustum, increase the counter by 1.
                 // Using the bundle index to index, because each bundle should have its
                 // own counter and arguments range.
                 uint oldCounterValue = atomicAdd(outputCounters.counters[modelBundleIndex], 1);
 
                 // The argument buffer for this model bundle should start at the commandOffset.
                 // Since each argument represent each model, we should put the arguments of the
-                // models which are inside the bounds back to back. The old counter value + the
+                // models which are inside the frustum back to back. The old counter value + the
                 // offset should be the latest available model index.
                 // The reason I am doing it before assigning the argument is because multiple
                 // threads could try to write to the same index. But because of the atomicAdd

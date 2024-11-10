@@ -4,6 +4,18 @@ struct ModelData
 {
     matrix modelMatrix;
     float4 modelOffset; // materialIndex on the last component.
+    uint   meshIndex;
+    uint   padding;
+};
+
+struct Frustum
+{
+	float4 left;
+	float4 right;
+	float4 bottom;
+	float4 top;
+	float4 near;
+	float4 far;
 };
 
 struct DrawArguments
@@ -27,90 +39,119 @@ struct CullingData
     uint commandOffset;
 };
 
-struct MaxBounds
+struct AABB
 {
-    float2 xBounds;
-    float2 yBounds;
-    float2 zBounds;
+    float4 maxAxes;
+    float4 minAxes;
 };
 
-struct MeshDetails
+struct PerModelData
 {
-    uint boundOffset;
-    uint boundCount;
+    uint modelBundleIndex;
+    uint modelIndex;
+};
+
+struct PerMeshData
+{
+    AABB aabb;
+};
+
+struct PerMeshBundleData
+{
+    uint meshOffset;
 };
 
 struct CameraMatrices
 {
-    matrix view;
-    matrix projection;
+    matrix  view;
+    matrix  projection;
+    Frustum frustum;
 };
 
 struct ConstantData
 {
-    MaxBounds maxBounds;
-    uint      modelCount;
+    uint modelCount;
 };
 
-ConstantBuffer<ConstantData> constantData        : register(b0);
-ConstantBuffer<CameraMatrices> cameraData        : register(b1);
+ConstantBuffer<ConstantData> constantData             : register(b0);
+ConstantBuffer<CameraMatrices> cameraData             : register(b1);
 
-StructuredBuffer<ModelData> modelData            : register(t0);
-StructuredBuffer<IndirectArguments> inputData    : register(t1);
-StructuredBuffer<CullingData> cullingData        : register(t2);
-StructuredBuffer<uint> modelBundleIndices        : register(t3);
-StructuredBuffer<float3> meshBounds              : register(t4);
-StructuredBuffer<uint> meshIndices               : register(t5);
-StructuredBuffer<MeshDetails> meshDetails        : register(t6);
+StructuredBuffer<ModelData> modelData                 : register(t0);
+StructuredBuffer<IndirectArguments> inputData         : register(t1);
+StructuredBuffer<CullingData> cullingData             : register(t2);
+StructuredBuffer<PerModelData> perModelData           : register(t3);
+StructuredBuffer<PerMeshData> perMeshData             : register(t4);
+StructuredBuffer<PerMeshBundleData> perMeshBundleData : register(t5);
+StructuredBuffer<uint> meshBundleIndices              : register(t6);
 
-RWStructuredBuffer<IndirectArguments> outputData : register(u0);
-RWStructuredBuffer<uint> outputCounters          : register(u1);
+RWStructuredBuffer<IndirectArguments> outputData      : register(u0);
+RWStructuredBuffer<uint> outputCounters               : register(u1);
 
-bool IsVertexInsideBounds(float4 vertex, matrix transform)
+bool IsOnOrForwardPlane(float4 plane, float4 extents, float4 centre)
 {
-    vertex  = mul(transform, vertex);
-    vertex /= vertex.w;
+    float radius = extents.x * plane.x + extents.y * plane.y + extents.z * plane.z;
 
-    MaxBounds mBounds = constantData.maxBounds;
-
-    if (mBounds.xBounds.x < vertex.x || vertex.x < mBounds.xBounds.y)
-        return false;
-
-    if (mBounds.yBounds.x < vertex.y || vertex.y < mBounds.yBounds.y)
-        return false;
-
-    if (mBounds.zBounds.x < vertex.z || vertex.z < mBounds.zBounds.y)
-        return false;
-
-    return true;
+    return -radius <= dot(plane, centre);
 }
 
-bool IsModelInsideBounds(uint threadIndex)
+bool IsModelInsideFrustum(uint threadIndex)
 {
-    uint modelIndex         = inputData[threadIndex].modelIndex;
+    PerModelData perModelDataInst = perModelData[threadIndex];
+
+    uint modelIndex         = perModelDataInst.modelIndex;
+    uint modelBundleIndex   = perModelDataInst.modelBundleIndex;
+    uint meshBundleIndex    = meshBundleIndices[modelBundleIndex];
+    uint meshOffset         = perMeshBundleData[meshBundleIndex].meshOffset;
     ModelData modelDataInst = modelData[modelIndex];
-    // A model bundle can have more than a single model. But all of the models
-    // of the same Model bundle should have the same mesh. So, use the bundle
-    // index to get the mesh index.
-    // Each model index should have which bundle it belongs to. So,
-    // use the threadIndex to get both the model and model bundle indices.
-    uint modelBundleIndex   = modelBundleIndices[threadIndex];
-    uint meshIndex          = meshIndices[modelBundleIndex];
-    MeshDetails details     = meshDetails[meshIndex];
 
-    float3 modelOffset = modelDataInst.modelOffset.xyz;
-    matrix transform   = mul(cameraData.projection, mul(cameraData.view, modelDataInst.modelMatrix));
-    uint boundEnd      = details.boundOffset + details.boundCount;
+    float4 modelOffset    = modelDataInst.modelOffset;
+    matrix transformWorld = mul(cameraData.view, modelDataInst.modelMatrix);
+    matrix transformClip  = mul(cameraData.projection, transformWorld);
 
-    for (uint index = details.boundOffset; index < boundEnd; ++index)
-    {
-        float4 boundVertex = float4(meshBounds[index] + modelOffset, 1.0);
+    // Local space
+    AABB aabb      = perMeshData[meshOffset + modelDataInst.meshIndex].aabb;
 
-        if (IsVertexInsideBounds(boundVertex, transform))
-            return true;
-    }
+    float4 centre  = (aabb.maxAxes + aabb.minAxes) * 0.5;
+    float4 extents = float4(
+        aabb.maxAxes.x - centre.x,
+        aabb.maxAxes.y - centre.y,
+        aabb.maxAxes.z - centre.z,
+        1.0
+    );
 
-    return false;
+    float4 right   = transformClip[0] * extents.x;
+    float4 up      = transformClip[1] * extents.y;
+    float4 forward = transformClip[2] * extents.z;
+
+    // The magnitude of the extents in the Clip space
+    float newX = abs(dot(float4(1.0, 0.0, 0.0, 1.0), right))
+        + abs(dot(float4(1.0, 0.0, 0.0, 1.0), up))
+        + abs(dot(float4(1.0, 0.0, 0.0, 1.0), forward));
+
+    float newY = abs(dot(float4(0.0, 1.0, 0.0, 1.0), right))
+        + abs(dot(float4(0.0, 1.0, 0.0, 1.0), up))
+        + abs(dot(float4(0.0, 1.0, 0.0, 1.0), forward));
+
+    float newZ = abs(dot(float4(0.0, 0.0, 1.0, 1.0), right))
+        + abs(dot(float4(0.0, 0.0, 1.0, 1.0), up))
+        + abs(dot(float4(0.0, 0.0, 1.0, 1.0), forward));
+
+    // We don't need the homogenous component here. As this will be used
+    // for calculating the radius only and the x, y and z should already
+    // been transformed to be in the clip space.
+    float4 scaledExtents     = float4(newX, newY, newZ, 1.0);
+    float4 transformedCentre = mul(cameraData.projection, mul(transformWorld, (centre + modelOffset)));
+
+    Frustum frustum    = cameraData.frustum;
+
+    bool isModelInside = IsOnOrForwardPlane(frustum.left, scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.right,  scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.bottom, scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.top,    scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.near,   scaledExtents, transformedCentre)
+        && IsOnOrForwardPlane(frustum.far,    scaledExtents, transformedCentre);
+
+    return isModelInside;
 }
 
 [numthreads(threadBlockSize, 1, 1)]
@@ -120,7 +161,7 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     if (threadIndex < constantData.modelCount)
     {
-        uint modelBundleIndex = modelBundleIndices[threadIndex];
+        uint modelBundleIndex = perModelData[threadIndex].modelBundleIndex;
         CullingData cData     = cullingData[modelBundleIndex];
 
         uint commandEnd       = cData.commandOffset + cData.commandCount;
@@ -128,9 +169,9 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         // Only process the models which are in the range of the bundle's commands.
         if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
         {
-            if (IsModelInsideBounds(threadIndex))
+            if (IsModelInsideFrustum(threadIndex))
             {
-                // If the model is inside the bounds, increase the counter by 1.
+                // If the model is inside the frustum, increase the counter by 1.
                 // Using the bundle index to index, because each bundle should have its
                 // own counter and arguments range.
                 uint oldCounterValue = 0u;
@@ -139,7 +180,7 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
                 // The argument buffer for this model bundle should start at the commandOffset.
                 // Since each argument represent each model, we should put the arguments of the
-                // models which are inside the bounds back to back. The old counter value + the
+                // models which are inside the frustum back to back. The old counter value + the
                 // offset should be the latest available model index.
                 // The reason I am doing it before assigning the argument is because multiple
                 // threads could try to write to the same index. But because of the atomicAdd
