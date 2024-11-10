@@ -71,8 +71,6 @@ VertexOut GetVertexAttributes(
 
 VertexOut main(float3 position : Position, float3 normal : Normal, float2 uv : UV)
 {
-	// There will be a single Dispatch invocation but one invocation of Draw
-	// per Model bundle. So, drawID will start from 0 at each invocation.
 	const ModelData model = modelData[constantData.modelIndex];
 
     Vertex vertex;

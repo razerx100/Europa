@@ -48,7 +48,6 @@ struct AABB
 struct PerModelData
 {
     uint modelBundleIndex;
-    uint modelIndex;
 };
 
 struct PerMeshData
@@ -98,7 +97,7 @@ bool IsModelInsideFrustum(uint threadIndex)
 {
     PerModelData perModelDataInst = perModelData[threadIndex];
 
-    uint modelIndex         = perModelDataInst.modelIndex;
+    uint modelIndex         = inputData[threadIndex].modelIndex;
     uint modelBundleIndex   = perModelDataInst.modelBundleIndex;
     uint meshBundleIndex    = meshBundleIndices[modelBundleIndex];
     uint meshOffset         = perMeshBundleData[meshBundleIndex].meshOffset;
