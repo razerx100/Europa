@@ -15,7 +15,7 @@ struct ModelData
 	matrix modelMatrix;
 	float4 modelOffset; // materialIndex on the last component.
     uint   meshIndex;
-    uint   padding;
+    uint   padding[3];
 };
 
 struct Frustum
