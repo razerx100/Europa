@@ -86,11 +86,24 @@ StructuredBuffer<uint> meshBundleIndices              : register(t6);
 RWStructuredBuffer<IndirectArguments> outputData      : register(u0);
 RWStructuredBuffer<uint> outputCounters               : register(u1);
 
-bool IsOnOrForwardPlane(float4 plane, float4 extents, float4 centre)
+bool IsOnOrForwardPlane(float4 plane, float3 extents, float4 centre)
 {
-    float radius = extents.x * plane.x + extents.y * plane.y + extents.z * plane.z;
+    // Collapse the extents on the plane, which would result in a line
+    // which should represent the half extent of the AABB.
+    float collapsedHalfExtentLine = extents.x * abs(plane.x)
+                                + extents.y * abs(plane.y)
+                                + extents.z * abs(plane.z);
 
-    return -radius <= dot(plane, centre);
+    // The dot product minus the distance of the plane represents the
+    // distance of the centre from the plane. If it equals to the collapsedHalfExtent
+    // then the centre of the AABB is on the plane and if it is bigger than the
+    // collapsedHalfExtent then it is forward on the plane.
+    // We are negating the collaspsedHalfExtent because even if the centre dot is
+    // negative, the other half of the AABB might still be forward on the plane.
+    // It would only be fully outside when it is lower than the negative half extent.
+    // The distance subtract is only needed for the far and the near plane, as they
+    // will have a distance. The other 4 planes will have 0 as their distance/w.
+    return -collapsedHalfExtentLine <= (dot(plane.xyz, centre.xyz) - plane.w);
 }
 
 bool IsModelInsideFrustum(uint threadIndex)
@@ -103,29 +116,29 @@ bool IsModelInsideFrustum(uint threadIndex)
     uint meshOffset         = perMeshBundleData[meshBundleIndex].meshOffset;
     ModelData modelDataInst = modelData[modelIndex];
 
-    float4 modelOffset    = modelDataInst.modelOffset;
-    matrix transformWorld = mul(cameraData.view, modelDataInst.modelMatrix);
-    matrix transformClip  = mul(cameraData.projection, transformWorld);
+    float3 modelOffset = modelDataInst.modelOffset.xyz;
+    matrix view        = cameraData.view;
 
     // Local space
     AABB aabb      = perMeshData[meshOffset + modelDataInst.meshIndex].aabb;
 
     float4 centre  = (aabb.maxAxes + aabb.minAxes) * 0.5;
-    float4 extents = float4(
+    float3 extents = float3(
         aabb.maxAxes.x - centre.x,
         aabb.maxAxes.y - centre.y,
-        aabb.maxAxes.z - centre.z,
-        1.0
+        aabb.maxAxes.z - centre.z
     );
 
-    float4 right   = transformClip[0] * extents.x;
-    float4 up      = transformClip[1] * extents.y;
-    float4 forward = transformClip[2] * extents.z;
+    // Need to get the pre-transformed direction vectors. So,
+    // have to use the original view matrix.
+    float4 right   = view[0] * extents.x;
+    float4 up      = view[1] * extents.y;
+    float4 forward = view[2] * extents.z;
 
-    // The magnitude of the extents in the Clip space
+    // The scaled magnitude of the extents in the world space
     float newX = abs(dot(float4(1.0, 0.0, 0.0, 1.0), right))
-        + abs(dot(float4(1.0, 0.0, 0.0, 1.0), up))
-        + abs(dot(float4(1.0, 0.0, 0.0, 1.0), forward));
+            + abs(dot(float4(1.0, 0.0, 0.0, 1.0), up))
+            + abs(dot(float4(1.0, 0.0, 0.0, 1.0), forward));
 
     float newY = abs(dot(float4(0.0, 1.0, 0.0, 1.0), right))
         + abs(dot(float4(0.0, 1.0, 0.0, 1.0), up))
@@ -135,22 +148,21 @@ bool IsModelInsideFrustum(uint threadIndex)
         + abs(dot(float4(0.0, 0.0, 1.0, 1.0), up))
         + abs(dot(float4(0.0, 0.0, 1.0, 1.0), forward));
 
-    // We don't need the homogenous component here. As this will be used
-    // for calculating the radius only and the x, y and z should already
-    // been transformed to be in the clip space.
-    float4 scaledExtents     = float4(newX, newY, newZ, 1.0);
-    float4 transformedCentre = mul(cameraData.projection, mul(transformWorld, (centre + modelOffset)));
+    float3 scaledExtents     = float3(newX, newY, newZ);
+    // Transform the centre to be in the World space, since the frustum planes are also
+    // in the world space.
+    float4 transformedCentre = mul(
+        view, mul(modelDataInst.modelMatrix, float4(centre.xyz + modelOffset, 1.0))
+    );
 
-    Frustum frustum    = cameraData.frustum;
+    Frustum frustum = cameraData.frustum;
 
-    bool isModelInside = IsOnOrForwardPlane(frustum.left, scaledExtents, transformedCentre)
+    return IsOnOrForwardPlane(frustum.left,   scaledExtents, transformedCentre)
         && IsOnOrForwardPlane(frustum.right,  scaledExtents, transformedCentre)
         && IsOnOrForwardPlane(frustum.bottom, scaledExtents, transformedCentre)
         && IsOnOrForwardPlane(frustum.top,    scaledExtents, transformedCentre)
         && IsOnOrForwardPlane(frustum.near,   scaledExtents, transformedCentre)
         && IsOnOrForwardPlane(frustum.far,    scaledExtents, transformedCentre);
-
-    return isModelInside;
 }
 
 [numthreads(threadBlockSize, 1, 1)]
