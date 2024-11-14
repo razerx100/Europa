@@ -129,16 +129,14 @@ bool IsOnOrForwardPlane(vec4 plane, vec3 extents, vec4 centre)
                                 + extents.y * abs(plane.y)
                                 + extents.z * abs(plane.z);
 
-    // The dot product minus the distance of the plane represents the
-    // distance of the centre from the plane. If it equals to the collapsedHalfExtent
+    // The dot product of the plane and the centre represents the distance of the
+    // centre from the plane. If it equals to the collapsedHalfExtent
     // then the centre of the AABB is on the plane and if it is bigger than the
     // collapsedHalfExtent then it is forward on the plane.
     // We are negating the collaspsedHalfExtent because even if the centre dot is
     // negative, the other half of the AABB might still be forward on the plane.
     // It would only be fully outside when it is lower than the negative half extent.
-    // The distance subtract is only needed for the far and the near plane, as they
-    // will have a distance. The other 4 planes will have 0 as their distance/w.
-    return -collapsedHalfExtentLine <= (dot(plane.xyz, centre.xyz) - plane.w);
+    return -collapsedHalfExtentLine <= dot(plane, centre);
 }
 
 bool IsModelInsideFrustum(uint threadIndex)
@@ -151,8 +149,8 @@ bool IsModelInsideFrustum(uint threadIndex)
     uint meshOffset         = perMeshBundleData.data[meshBundleIndex].meshOffset;
     ModelData modelDataInst = modelData.models[modelIndex];
 
-    vec3 modelOffset = modelDataInst.modelOffset.xyz;
-    mat4 view        = camera.view;
+    vec4 modelOffset = vec4(modelDataInst.modelOffset.xyz, 0.0);
+    mat4 world       = modelDataInst.modelMatrix;
 
     // Local space
     AABB aabb    = perMeshData.data[meshOffset + modelDataInst.meshIndex].aabb;
@@ -164,29 +162,31 @@ bool IsModelInsideFrustum(uint threadIndex)
         aabb.maxAxes.z - centre.z
     );
 
-    // Need to get the pre-transformed direction vectors. So,
-    // have to use the original view matrix.
-    vec4 right   = view[0] * extents.x;
-    vec4 up      = view[1] * extents.y;
-    vec4 forward = view[2] * extents.z;
+    // Need to get the x, y and z vectors from the model's world matrix
+    // to correctly scale/rotate the extents. And skip the translation.
+    // We need to grab them from the rows and in GLSL, the index operator
+    // grabs one the of columns.
+    vec3 right   = vec3(world[0].x, world[1].x, world[2].x) * extents.x;
+    vec3 up      = vec3(world[0].y, world[1].y, world[2].y) * extents.y;
+    vec3 forward = vec3(world[0].z, world[1].z, world[2].z) * extents.z;
 
     // The scaled magnitude of the extents in the world space
-    float newX = abs(dot(vec4(1.0, 0.0, 0.0, 1.0), right))
-            + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), up))
-            + abs(dot(vec4(1.0, 0.0, 0.0, 1.0), forward));
+    float newX = abs(dot(vec3(1.0, 0.0, 0.0), right))
+                + abs(dot(vec3(1.0, 0.0, 0.0), up))
+                + abs(dot(vec3(1.0, 0.0, 0.0), forward));
 
-    float newY = abs(dot(vec4(0.0, 1.0, 0.0, 1.0), right))
-        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), up))
-        + abs(dot(vec4(0.0, 1.0, 0.0, 1.0), forward));
+    float newY = abs(dot(vec3(0.0, 1.0, 0.0), right))
+                + abs(dot(vec3(0.0, 1.0, 0.0), up))
+                + abs(dot(vec3(0.0, 1.0, 0.0), forward));
 
-    float newZ = abs(dot(vec4(0.0, 0.0, 1.0, 1.0), right))
-        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), up))
-        + abs(dot(vec4(0.0, 0.0, 1.0, 1.0), forward));
+    float newZ = abs(dot(vec3(0.0, 0.0, 1.0), right))
+                + abs(dot(vec3(0.0, 0.0, 1.0), up))
+                + abs(dot(vec3(0.0, 0.0, 1.0), forward));
 
     vec3 scaledExtents     = vec3(newX, newY, newZ);
     // Transform the centre to be in the World space, since the frustum planes are also
     // in the world space.
-    vec4 transformedCentre = view * modelDataInst.modelMatrix * vec4(centre.xyz + modelOffset, 1.0);
+    vec4 transformedCentre = world * (centre + modelOffset);
 
     Frustum frustum = camera.frustum;
 
