@@ -67,6 +67,12 @@ struct VertexOut
 	uint materialIndex;
 };
 
+struct MeshletDetails
+{
+	Meshlet meshlet;
+	vec4    sphereBV;
+};
+
 struct MeshDetails
 {
 	uint vertexOffset;
@@ -95,7 +101,7 @@ layout(binding = 0) readonly buffer Modeldata
 
 layout(binding = 1) readonly buffer MeshletData
 {
-	Meshlet meshlets[];
+	MeshletDetails meshletDetails[];
 } meshletData;
 
 layout(binding = 2) readonly buffer VertexData
@@ -189,7 +195,7 @@ void main()
 	ModelDetails modelDetails = constantData.modelDetails;
 
 	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
-	Meshlet meshlet    = meshletData.meshlets[meshletOffset + gid];
+	Meshlet meshlet    = meshletData.meshletDetails[meshletOffset + gid].meshlet;
 
 	SetMeshOutputsEXT(meshlet.vertexCount, meshlet.primitiveCount);
 

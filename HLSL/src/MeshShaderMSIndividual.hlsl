@@ -50,6 +50,12 @@ struct CameraMatrices
     Frustum frustum;
 };
 
+struct MeshletDetails
+{
+    Meshlet meshlet;
+    float4  sphereBV;
+};
+
 struct MeshDetails
 {
 	uint vertexOffset;
@@ -80,14 +86,14 @@ struct ConstantData
 	MeshDetails  meshDetails;
 };
 
-ConstantBuffer<ConstantData> constantData : register(b1);
-ConstantBuffer<CameraMatrices> cameraData : register(b2);
+ConstantBuffer<ConstantData> constantData    : register(b1);
+ConstantBuffer<CameraMatrices> cameraData    : register(b2);
 
-StructuredBuffer<ModelData> modelData     : register(t0);
-StructuredBuffer<Meshlet> meshletData     : register(t1);
-StructuredBuffer<Vertex> vertexData       : register(t2);
-StructuredBuffer<uint> vertexIndexData    : register(t3);
-StructuredBuffer<uint> primIndexData      : register(t4);
+StructuredBuffer<ModelData> modelData        : register(t0);
+StructuredBuffer<MeshletDetails> meshletData : register(t1);
+StructuredBuffer<Vertex> vertexData          : register(t2);
+StructuredBuffer<uint> vertexIndexData       : register(t3);
+StructuredBuffer<uint> primIndexData         : register(t4);
 
 uint3 UnpackPrimitive(uint primitive)
 {
@@ -151,7 +157,7 @@ void main(
 	ModelDetails modelDetails = constantData.modelDetails;
 
 	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
-	Meshlet meshlet    = meshletData[meshletOffset + gid];
+	Meshlet meshlet    = meshletData[meshletOffset + gid].meshlet;
 
 	SetMeshOutputCounts(meshlet.vertexCount, meshlet.primitiveCount);
 
