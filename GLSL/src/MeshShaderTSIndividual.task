@@ -7,6 +7,53 @@ const uint TASK_GROUP_SIZE = 32;
 
 layout(local_size_x = TASK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
+struct ModelData
+{
+    mat4 modelMatrix;
+    vec4 modelOffset; // materialIndex on the last component.
+    uint meshIndex;
+    uint padding[3];
+};
+
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
+struct Meshlet
+{
+	uint vertexCount;
+    uint vertexOffset;
+    uint primitiveCount;
+    uint primitiveOffset;
+};
+
+struct MeshletDetails
+{
+	Meshlet meshlet;
+	vec4    sphereBV;
+};
+
+struct MeshDetails
+{
+	uint vertexOffset;
+	uint vertexIndicesOffset;
+	uint primitiveIndicesOffset;
+	uint meshletOffset;
+};
+
+struct ModelDetails
+{
+	uint meshletCount;
+	uint meshletOffset;
+	uint modelIndex;
+};
+
 struct Payload
 {
     uint meshletIndices[TASK_GROUP_SIZE];
@@ -16,14 +63,32 @@ taskPayloadSharedEXT Payload s_Payload;
 
 layout(push_constant) uniform ConstantData
 {
-	uint meshletCount;
+	ModelDetails modelDetails;
+	MeshDetails  meshDetails;
 } constantData;
+
+layout(binding = 0) readonly buffer Modeldata
+{
+	ModelData models[];
+} modelData;
+
+layout(binding = 1) readonly buffer MeshletData
+{
+	MeshletDetails meshletDetails[];
+} meshletData;
+
+layout(binding = 5) uniform CameraMatrices
+{
+	mat4    view;
+	mat4    projection;
+	Frustum frustum;
+} camera;
 
 void main()
 {
 	bool doesMeshletExist = false;
 
-	if (gl_LocalInvocationIndex < constantData.meshletCount)
+	if (gl_LocalInvocationIndex < constantData.modelDetails.meshletCount)
 	{
 		doesMeshletExist = true;
 	}
