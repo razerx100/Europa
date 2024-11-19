@@ -6,10 +6,11 @@ layout(local_size_x = threadBlockSize, local_size_y = 1, local_size_z = 1) in;
 
 struct ModelData
 {
-    mat4 modelMatrix;
-    vec4 modelOffset; // materialIndex on the last component.
-    uint meshIndex;
-    uint padding[3];
+    mat4  modelMatrix;
+    vec4  modelOffset; // materialIndex on the last component.
+    uint  meshIndex;
+    float modelScale;
+    uint  padding[2];
 };
 
 struct IndirectArguments

@@ -15,10 +15,11 @@ layout(location = 0) out VetexOut
 
 struct ModelData
 {
-    mat4 modelMatrix;
-    vec4 modelOffset; // materialIndex on the last component.
-    uint meshIndex;
-    uint padding[3];
+    mat4  modelMatrix;
+    vec4  modelOffset; // materialIndex on the last component.
+    uint  meshIndex;
+    float modelScale;
+    uint  padding[2];
 };
 
 struct Frustum
