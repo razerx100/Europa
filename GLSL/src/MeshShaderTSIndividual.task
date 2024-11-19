@@ -85,11 +85,30 @@ layout(binding = 5) uniform CameraMatrices
 	Frustum frustum;
 } camera;
 
+bool IsOnOrForwardPlane(vec4 plane, vec4 centre, float radius)
+{
+    return -radius <= dot(plane, centre);
+}
+
 bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 {
-    mat4 world = modelDataInst.modelMatrix;
+    mat4 world             = modelDataInst.modelMatrix;
 
-    return true;
+    vec4 sphereBV          = meshletDetails.sphereBV;
+    float scaledRadius     = sphereBV.w * modelDataInst.modelScale;
+    vec4 transformedCentre = world * vec4(sphereBV.xyz + modelDataInst.modelOffset.xyz, 1.0);
+
+    Frustum frustum = camera.frustum;
+
+    bool isInsideFrustum =
+        IsOnOrForwardPlane(frustum.left,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.right,  transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.bottom, transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.top,    transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.near,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.far,    transformedCentre, scaledRadius);
+
+    return isInsideFrustum;
 }
 
 void main()

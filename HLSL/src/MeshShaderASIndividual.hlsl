@@ -78,11 +78,30 @@ ConstantBuffer<CameraMatrices> cameraData    : register(b1);
 StructuredBuffer<ModelData> modelData        : register(t0);
 StructuredBuffer<MeshletDetails> meshletData : register(t1);
 
+bool IsOnOrForwardPlane(float4 plane, float4 centre, float radius)
+{
+    return -radius <= dot(plane, centre);
+}
+
 bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 {
-    matrix world = modelDataInst.modelMatrix;
+    matrix world             = modelDataInst.modelMatrix;
 
-    return true;
+    float4 sphereBV          = meshletDetails.sphereBV;
+    float scaledRadius       = sphereBV.w * modelDataInst.modelScale;
+    float4 transformedCentre = mul(world, float4(sphereBV.xyz + modelDataInst.modelOffset.xyz, 1.0));
+
+    Frustum frustum = cameraData.frustum;
+
+    bool isInsideFrustum =
+        IsOnOrForwardPlane(frustum.left,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.right,  transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.bottom, transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.top,    transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.near,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.far,    transformedCentre, scaledRadius);
+
+    return isInsideFrustum;
 }
 
 [NumThreads(AS_GROUP_SIZE, 1, 1)]
