@@ -139,7 +139,7 @@ void main()
 		s_Payload.meshletIndices[currentIndex] = threadIndex;
 	}
 
-	uint validCount  = subgroupBallotBitCount(validVotes);
+	uint validCount = subgroupBallotBitCount(validVotes);
 
 	// The arguments are taken on the first invocation.
 	EmitMeshTasksEXT(validCount, 1, 1);

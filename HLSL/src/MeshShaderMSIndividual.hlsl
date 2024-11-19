@@ -163,7 +163,7 @@ void main(
 		return;
 
 	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
-	Meshlet meshlet    = meshletData[meshletOffset + gid].meshlet;
+	Meshlet meshlet    = meshletData[meshletOffset + meshletIndex].meshlet;
 
 	SetMeshOutputCounts(meshlet.vertexCount, meshlet.primitiveCount);
 
