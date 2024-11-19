@@ -77,17 +77,39 @@ ConstantBuffer<CameraMatrices> cameraData    : register(b1);
 StructuredBuffer<ModelData> modelData        : register(t0);
 StructuredBuffer<MeshletDetails> meshletData : register(t1);
 
+bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
+{
+    matrix world = modelDataInst.modelMatrix;
+
+    return true;
+}
+
 [NumThreads(AS_GROUP_SIZE, 1, 1)]
 void main(uint gtid : SV_GroupThreadID, uint dtid : SV_DispatchThreadID, uint gid : SV_GroupID)
 {
-	bool doesMeshletExist = false;
+	bool isMeshletVisible = false;
 
-	if (dtid < constantData.modelDetails.meshletCount)
+	ModelDetails modelDetails = constantData.modelDetails;
+	MeshDetails meshDetails   = constantData.meshDetails;
+
+	if (dtid < modelDetails.meshletCount)
 	{
-		doesMeshletExist = true;
-	}
+		uint meshletOffset            = meshDetails.meshletOffset + modelDetails.meshletOffset;
+		MeshletDetails meshletDetails = meshletData[meshletOffset + dtid];
 
-	uint validCount = WaveActiveCountBits(doesMeshletExist);
+		ModelData modelDataInst       = modelData[modelDetails.modelIndex];
+
+		isMeshletVisible = IsMeshletVisible(modelDataInst, meshletDetails);
+    }
+
+	if (isMeshletVisible)
+    {
+        uint currentIndex = WavePrefixCountBits(isMeshletVisible);
+
+        s_Payload.meshletIndices[currentIndex] = dtid;
+    }
+
+	uint validCount = WaveActiveCountBits(isMeshletVisible);
 
 	// The arguments are taken on the first invocation.
 	DispatchMesh(validCount, 1, 1, s_Payload);

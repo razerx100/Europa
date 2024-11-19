@@ -156,6 +156,11 @@ void main(
 	MeshDetails meshDetails   = constantData.meshDetails;
 	ModelDetails modelDetails = constantData.modelDetails;
 
+	uint meshletIndex = payload.meshletIndices[gid];
+
+	if (meshletIndex >= modelDetails.meshletCount)
+		return;
+
 	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
 	Meshlet meshlet    = meshletData[meshletOffset + gid].meshlet;
 

@@ -84,16 +84,40 @@ layout(binding = 5) uniform CameraMatrices
 	Frustum frustum;
 } camera;
 
+bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
+{
+    mat4 world = modelDataInst.modelMatrix;
+
+    return true;
+}
+
 void main()
 {
-	bool doesMeshletExist = false;
+	uint threadIndex = gl_WorkGroupID.x * TASK_GROUP_SIZE + gl_LocalInvocationIndex;
 
-	if (gl_LocalInvocationIndex < constantData.modelDetails.meshletCount)
+	bool isMeshletVisible = false;
+
+	ModelDetails modelDetails = constantData.modelDetails;
+	MeshDetails meshDetails   = constantData.meshDetails;
+
+	if (threadIndex < modelDetails.meshletCount)
 	{
-		doesMeshletExist = true;
+		uint meshletOffset            = meshDetails.meshletOffset + modelDetails.meshletOffset;
+		MeshletDetails meshletDetails = meshletData.meshletDetails[meshletOffset + threadIndex];
+
+		ModelData modelDataInst       = modelData.models[modelDetails.modelIndex];
+
+		isMeshletVisible = IsMeshletVisible(modelDataInst, meshletDetails);
 	}
 
-	uvec4 validVotes = subgroupBallot(doesMeshletExist);
+	uvec4 validVotes = subgroupBallot(isMeshletVisible);
+
+	if (isMeshletVisible)
+	{
+		uint currentIndex = subgroupBallotExclusiveBitCount(validVotes);
+
+		s_Payload.meshletIndices[currentIndex] = threadIndex;
+	}
 
 	uint validCount  = subgroupBallotBitCount(validVotes);
 
