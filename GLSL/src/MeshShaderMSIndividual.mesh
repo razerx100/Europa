@@ -69,10 +69,17 @@ struct VertexOut
 	uint materialIndex;
 };
 
+struct ConeNormal
+{
+	uint  packedCone;
+	float apexOffset;
+};
+
 struct MeshletDetails
 {
-	Meshlet meshlet;
-	vec4    sphereBV;
+	Meshlet    meshlet;
+	vec4       sphereBV;
+	ConeNormal coneNormal;
 };
 
 struct MeshDetails

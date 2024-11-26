@@ -51,10 +51,17 @@ struct CameraMatrices
     Frustum frustum;
 };
 
+struct ConeNormal
+{
+	uint  packedCone;
+	float apexOffset;
+};
+
 struct MeshletDetails
 {
-    Meshlet meshlet;
-    float4  sphereBV;
+	Meshlet    meshlet;
+	float4     sphereBV;
+	ConeNormal coneNormal;
 };
 
 struct MeshDetails
