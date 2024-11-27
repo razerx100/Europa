@@ -40,10 +40,19 @@ struct ConeNormal
 	float apexOffset;
 };
 
+// Scalar Float4. vec4 is a packed vector and would enforce 16bytes alignment
+struct Float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
 struct MeshletDetails
 {
 	Meshlet    meshlet;
-	vec4       sphereBV;
+	Float4     sphereBV;
 	ConeNormal coneNormal;
 };
 
@@ -98,6 +107,11 @@ bool IsConeDegenerate(uint packedCone)
     return (packedCone >> 24) == 255;
 }
 
+vec4 Float4ToVec4(Float4 float4)
+{
+	return vec4(float4.x, float4.y, float4.z, float4.w);
+}
+
 vec4 UnpackCone(uint packedCone)
 {
     vec4 unpackedCone;
@@ -123,7 +137,7 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 {
     mat4 world             = modelDataInst.modelMatrix;
 
-    vec4 sphereBV          = meshletDetails.sphereBV;
+    vec4 sphereBV          = Float4ToVec4(meshletDetails.sphereBV);
     float scaledRadius     = sphereBV.w * modelDataInst.modelScale;
     vec4 transformedCentre = world * vec4(sphereBV.xyz + modelDataInst.modelOffset.xyz, 1.0);
 

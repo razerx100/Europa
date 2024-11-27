@@ -75,10 +75,19 @@ struct ConeNormal
 	float apexOffset;
 };
 
+// Scalar Float4. vec4 is a packed vector and would enforce 16bytes alignment
+struct Float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
 struct MeshletDetails
 {
 	Meshlet    meshlet;
-	vec4       sphereBV;
+	Float4     sphereBV;
 	ConeNormal coneNormal;
 };
 
