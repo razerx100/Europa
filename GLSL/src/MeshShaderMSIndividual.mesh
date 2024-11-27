@@ -133,6 +133,7 @@ layout(binding = 5) uniform CameraMatrices
 	mat4    view;
 	mat4    projection;
 	Frustum frustum;
+	vec4    viewPosition;
 } camera;
 
 uvec3 UnpackPrimitive(uint primitive)

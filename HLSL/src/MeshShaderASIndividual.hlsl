@@ -31,7 +31,8 @@ struct CameraMatrices
 {
 	matrix  view;
 	matrix  projection;
-    Frustum frustum;
+	Frustum frustum;
+	float4  viewPosition;
 };
 
 struct ConeNormal
@@ -143,9 +144,7 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 
 	float3 apex = transformedCentre.xyz - coneAxis * coneNormal.apexOffset * modelDataInst.modelScale;
 
-	matrix view          = cameraData.view;
-	// In HLSL, indexing a matrix indexes a row. And the view position is in the 4th column.
-	float3 viewPosition  = float3(view[0].w, view[1].w, view[2].w);
+	float3 viewPosition  = cameraData.viewPosition.xyz;
 	float3 viewDirection = normalize(viewPosition - apex);
 
 	// The w component has the -cos(angle + 90) degree

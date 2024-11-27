@@ -90,6 +90,7 @@ layout(binding = 5) uniform CameraMatrices
 	mat4    view;
 	mat4    projection;
 	Frustum frustum;
+	vec4    viewPosition;
 } camera;
 
 bool IsConeDegenerate(uint packedCone)
@@ -150,9 +151,7 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 
 	vec3 apex = transformedCentre.xyz - coneAxis * coneNormal.apexOffset * modelDataInst.modelScale;
 
-	mat4 view          = camera.view;
-	// In GLSL, indexing a matrix indexes a column. And the view position is in the 4th column.
-	vec3 viewPosition  = view[3].xyz;
+	vec3 viewPosition  = camera.viewPosition.xyz;
 	vec3 viewDirection = normalize(viewPosition - apex);
 
 	// The w component has the -cos(angle + 90) degree

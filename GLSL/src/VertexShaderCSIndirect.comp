@@ -117,9 +117,10 @@ layout(binding = 9) buffer OutputModelIndices
 
 layout(binding = 10) uniform CameraMatrices
 {
-	mat4    view;
-	mat4    projection;
+    mat4    view;
+    mat4    projection;
     Frustum frustum;
+    vec4    viewPosition;
 } camera;
 
 bool IsOnOrForwardPlane(vec4 plane, vec3 extents, vec4 centre)

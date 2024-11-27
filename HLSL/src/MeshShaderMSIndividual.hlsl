@@ -48,7 +48,8 @@ struct CameraMatrices
 {
 	matrix  view;
 	matrix  projection;
-    Frustum frustum;
+	Frustum frustum;
+	float4  viewPosition;
 };
 
 struct ConeNormal

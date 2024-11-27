@@ -66,6 +66,7 @@ struct CameraMatrices
     matrix  view;
     matrix  projection;
     Frustum frustum;
+    float4  viewPosition;
 };
 
 struct ConstantData

@@ -64,6 +64,7 @@ layout(binding = 1) uniform CameraMatrices
 	mat4    view;
 	mat4    projection;
 	Frustum frustum;
+	vec4    viewPosition;
 } camera;
 
 VertexOut GetVertexAttributes(
