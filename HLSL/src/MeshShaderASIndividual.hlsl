@@ -85,6 +85,27 @@ ConstantBuffer<CameraMatrices> cameraData    : register(b1);
 StructuredBuffer<ModelData> modelData        : register(t0);
 StructuredBuffer<MeshletDetails> meshletData : register(t1);
 
+bool IsConeDegenerate(uint packedCone)
+{
+    return (packedCone >> 24) == 255;
+}
+
+float4 UnpackCone(uint packedCone)
+{
+    float4 unpackedCone;
+
+    unpackedCone.x = float((packedCone >> 0) & 255);
+    unpackedCone.y = float((packedCone >> 8) & 255);
+    unpackedCone.z = float((packedCone >> 16) & 255);
+    unpackedCone.w = float((packedCone >> 24) & 255);
+
+    unpackedCone = unpackedCone / 255.0;
+
+    unpackedCone.xyz = unpackedCone.xyz * 2.0 - 1.0;
+
+    return unpackedCone;
+}
+
 bool IsOnOrForwardPlane(float4 plane, float4 centre, float radius)
 {
     return -radius <= dot(plane, centre);
@@ -108,7 +129,31 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
         && IsOnOrForwardPlane(frustum.near,   transformedCentre, scaledRadius)
         && IsOnOrForwardPlane(frustum.far,    transformedCentre, scaledRadius);
 
-    return isInsideFrustum;
+	if (!isInsideFrustum)
+	    return false;
+
+	ConeNormal coneNormal = meshletDetails.coneNormal;
+
+	if (IsConeDegenerate(coneNormal.packedCone))
+	    return true; // Cone is degenerate, the spread is more than 90 degrees.
+
+	float4 unpackedCone = UnpackCone(coneNormal.packedCone);
+
+	float3 coneAxis     = normalize(mul(world, float4(unpackedCone.xyz, 0))).xyz;
+
+	float3 apex = transformedCentre.xyz - coneAxis * coneNormal.apexOffset * modelDataInst.modelScale;
+
+	matrix view          = cameraData.view;
+	// In HLSL, indexing a matrix indexes a row. And the view position is in the 4th column.
+	float3 viewPosition  = float3(view[0].w, view[1].w, view[2].w);
+	float3 viewDirection = normalize(viewPosition - apex);
+
+	// The w component has the -cos(angle + 90) degree
+	// This is the minimum dot product on the negative axis, from which all the triangles are backface.
+	if (dot(viewDirection, -coneAxis) > unpackedCone.w)
+	    return false;
+
+	return true;
 }
 
 [NumThreads(AS_GROUP_SIZE, 1, 1)]

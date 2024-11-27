@@ -92,6 +92,27 @@ layout(binding = 5) uniform CameraMatrices
 	Frustum frustum;
 } camera;
 
+bool IsConeDegenerate(uint packedCone)
+{
+    return (packedCone >> 24) == 255;
+}
+
+vec4 UnpackCone(uint packedCone)
+{
+    vec4 unpackedCone;
+
+    unpackedCone.x = float((packedCone >> 0) & 255);
+    unpackedCone.y = float((packedCone >> 8) & 255);
+    unpackedCone.z = float((packedCone >> 16) & 255);
+    unpackedCone.w = float((packedCone >> 24) & 255);
+
+    unpackedCone   = unpackedCone / 255.0;
+
+    unpackedCone.xyz = unpackedCone.xyz * 2.0 - 1.0;
+
+    return unpackedCone;
+}
+
 bool IsOnOrForwardPlane(vec4 plane, vec4 centre, float radius)
 {
     return -radius <= dot(plane, centre);
@@ -115,7 +136,31 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
         && IsOnOrForwardPlane(frustum.near,   transformedCentre, scaledRadius)
         && IsOnOrForwardPlane(frustum.far,    transformedCentre, scaledRadius);
 
-    return isInsideFrustum;
+	if (!isInsideFrustum)
+        return false;
+
+	ConeNormal coneNormal = meshletDetails.coneNormal;
+
+	if (IsConeDegenerate(coneNormal.packedCone))
+	    return true; // Cone is degenerate, the spread is more than 90 degrees.
+
+	vec4 unpackedCone = UnpackCone(coneNormal.packedCone);
+
+	vec3 coneAxis     = normalize(world * vec4(unpackedCone.xyz, 0)).xyz;
+
+	vec3 apex = transformedCentre.xyz - coneAxis * coneNormal.apexOffset * modelDataInst.modelScale;
+
+	mat4 view          = camera.view;
+	// In GLSL, indexing a matrix indexes a column. And the view position is in the 4th column.
+	vec3 viewPosition  = view[3].xyz;
+	vec3 viewDirection = normalize(viewPosition - apex);
+
+	// The w component has the -cos(angle + 90) degree
+	// This is the minimum dot product on the negative axis, from which all the triangles are backface.
+	if (dot(viewDirection, -coneAxis) > unpackedCone.w)
+	    return false;
+
+	return true;
 }
 
 void main()
