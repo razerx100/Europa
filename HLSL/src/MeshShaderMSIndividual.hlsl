@@ -31,8 +31,8 @@ struct Frustum
 
 struct Meshlet
 {
-	uint vertexCount;
-	uint vertexOffset;
+	uint indexCount;
+	uint indexOffset;
 	uint primitiveCount;
 	uint primitiveOffset;
 };
@@ -65,7 +65,7 @@ struct MeshletDetails
 	ConeNormal coneNormal;
 };
 
-struct MeshDetails
+struct MeshBundleDetails
 {
 	uint vertexOffset;
 	uint vertexIndicesOffset;
@@ -73,15 +73,22 @@ struct MeshDetails
 	uint meshletOffset;
 };
 
+struct MeshDetails
+{
+	uint meshletCount;
+	uint meshletOffset;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
 // The constants are laid out as vec4s. The padding here
 // isn't necessary but it would still be padded implicitly.
 // So, just doing it explicitly.
 struct ModelDetails
 {
-	uint meshletCount;
-	uint meshletOffset;
-	uint modelIndex;
-	uint padding;
+    MeshDetails meshDetails;
+	uint        modelIndex;
+	uint        padding[3];
 };
 
 struct Payload
@@ -91,8 +98,8 @@ struct Payload
 
 struct ConstantData
 {
-	ModelDetails modelDetails;
-	MeshDetails  meshDetails;
+	ModelDetails      modelDetails;
+	MeshBundleDetails meshBundleDetails;
 };
 
 ConstantBuffer<ConstantData> constantData    : register(b0);
@@ -162,31 +169,34 @@ void main(
 	in payload Payload payload,
 	out indices uint3 prims[126], out vertices VertexOut verts[64]
 ) {
-	MeshDetails meshDetails   = constantData.meshDetails;
-	ModelDetails modelDetails = constantData.modelDetails;
+	MeshBundleDetails meshBundleDetails = constantData.meshBundleDetails;
+	ModelDetails modelDetails           = constantData.modelDetails;
+	MeshDetails meshDetails             = modelDetails.meshDetails;
 
 	uint meshletIndex = payload.meshletIndices[gid];
 
-	if (meshletIndex >= modelDetails.meshletCount)
+	if (meshletIndex >= meshDetails.meshletCount)
 		return;
 
-	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
+	uint meshletOffset = meshBundleDetails.meshletOffset + meshDetails.meshletOffset;
 	Meshlet meshlet    = meshletData[meshletOffset + meshletIndex].meshlet;
 
-	SetMeshOutputCounts(meshlet.vertexCount, meshlet.primitiveCount);
+	SetMeshOutputCounts(meshlet.indexCount, meshlet.primitiveCount);
 
 	if (gtid < meshlet.primitiveCount)
 	{
-		uint primOffset = meshDetails.primitiveIndicesOffset + meshlet.primitiveOffset;
+		uint primOffset = meshBundleDetails.primitiveIndicesOffset
+			+ meshDetails.primitiveOffset + meshlet.primitiveOffset;
 		prims[gtid]     = GetPrimitive(primOffset, gtid);
 	}
 
-	if (gtid < meshlet.vertexCount)
+	if (gtid < meshlet.indexCount)
 	{
-		uint vertexIndicesOffset = meshDetails.vertexIndicesOffset + meshlet.vertexOffset;
+		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset + meshlet.indexOffset;
 
 		verts[gtid] = GetVertexAttributes(
-			modelDetails.modelIndex, GetVertexIndex(vertexIndicesOffset, gtid)
+			modelDetails.modelIndex,
+			meshDetails.vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
 		);
 	}
 }

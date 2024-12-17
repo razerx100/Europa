@@ -21,8 +21,8 @@ struct Frustum
 
 struct Meshlet
 {
-	uint vertexCount;
-	uint vertexOffset;
+	uint indexCount;
+	uint indexOffset;
 	uint primitiveCount;
 	uint primitiveOffset;
 };
@@ -48,7 +48,7 @@ struct MeshletDetails
 	ConeNormal coneNormal;
 };
 
-struct MeshDetails
+struct MeshBundleDetails
 {
 	uint vertexOffset;
 	uint vertexIndicesOffset;
@@ -56,21 +56,28 @@ struct MeshDetails
 	uint meshletOffset;
 };
 
+struct MeshDetails
+{
+	uint meshletCount;
+	uint meshletOffset;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
 // The constants are laid out as vec4s. The padding here
 // isn't necessary but it would still be padded implicitly.
 // So, just doing it explicitly.
 struct ModelDetails
 {
-	uint meshletCount;
-	uint meshletOffset;
-	uint modelIndex;
-	uint padding;
+    MeshDetails meshDetails;
+	uint        modelIndex;
+	uint        padding[3];
 };
 
 struct ConstantData
 {
-	ModelDetails modelDetails;
-	MeshDetails  meshDetails;
+	ModelDetails      modelDetails;
+	MeshBundleDetails meshBundleDetails;
 };
 
 struct Payload
@@ -160,12 +167,13 @@ void main(uint gtid : SV_GroupThreadID, uint dtid : SV_DispatchThreadID, uint gi
 {
 	bool isMeshletVisible = false;
 
-	ModelDetails modelDetails = constantData.modelDetails;
-	MeshDetails meshDetails   = constantData.meshDetails;
+	ModelDetails modelDetails           = constantData.modelDetails;
+	MeshDetails meshDetails             = modelDetails.meshDetails;
+	MeshBundleDetails meshBundleDetails = constantData.meshBundleDetails;
 
-	if (dtid < modelDetails.meshletCount)
+	if (dtid < meshDetails.meshletCount)
 	{
-		uint meshletOffset            = meshDetails.meshletOffset + modelDetails.meshletOffset;
+		uint meshletOffset            = meshBundleDetails.meshletOffset + meshDetails.meshletOffset;
 		MeshletDetails meshletDetails = meshletData[meshletOffset + dtid];
 
 		ModelData modelDataInst       = modelData[modelDetails.modelIndex];

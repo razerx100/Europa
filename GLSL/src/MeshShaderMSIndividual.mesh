@@ -45,8 +45,8 @@ struct Frustum
 
 struct Meshlet
 {
-	uint vertexCount;
-    uint vertexOffset;
+    uint indexCount;
+    uint indexOffset;
     uint primitiveCount;
     uint primitiveOffset;
 };
@@ -91,7 +91,7 @@ struct MeshletDetails
 	ConeNormal coneNormal;
 };
 
-struct MeshDetails
+struct MeshBundleDetails
 {
 	uint vertexOffset;
 	uint vertexIndicesOffset;
@@ -99,17 +99,24 @@ struct MeshDetails
 	uint meshletOffset;
 };
 
-struct ModelDetails
+struct MeshDetails
 {
 	uint meshletCount;
 	uint meshletOffset;
-	uint modelIndex;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
+struct ModelDetails
+{
+	MeshDetails meshDetails;
+	uint        modelIndex;
 };
 
 layout(push_constant) uniform ConstantData
 {
-	ModelDetails modelDetails;
-	MeshDetails  meshDetails;
+	ModelDetails      modelDetails;
+	MeshBundleDetails meshBundleDetails;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
@@ -210,32 +217,35 @@ void main()
 	const uint gid  = gl_WorkGroupID.x;
 	const uint gtid = gl_LocalInvocationID.x;
 
-	MeshDetails meshDetails   = constantData.meshDetails;
-	ModelDetails modelDetails = constantData.modelDetails;
+	MeshBundleDetails meshBundleDetails = constantData.meshBundleDetails;
+	ModelDetails modelDetails           = constantData.modelDetails;
+	MeshDetails meshDetails             = modelDetails.meshDetails;
 
 	uint meshletIndex = s_Payload.meshletIndices[gid];
 
-	if (meshletIndex >= modelDetails.meshletCount)
+	if (meshletIndex >= meshDetails.meshletCount)
 		return;
 
-	uint meshletOffset = meshDetails.meshletOffset + modelDetails.meshletOffset;
+	uint meshletOffset = meshBundleDetails.meshletOffset + meshDetails.meshletOffset;
 	Meshlet meshlet    = meshletData.meshletDetails[meshletOffset + meshletIndex].meshlet;
 
-	SetMeshOutputsEXT(meshlet.vertexCount, meshlet.primitiveCount);
+	SetMeshOutputsEXT(meshlet.indexCount, meshlet.primitiveCount);
 
 	if (gtid < meshlet.primitiveCount)
 	{
-		uint primOffset = meshDetails.primitiveIndicesOffset + meshlet.primitiveOffset;
+		uint primOffset = meshBundleDetails.primitiveIndicesOffset
+			+ meshDetails.primitiveOffset + meshlet.primitiveOffset;
 
 		gl_PrimitiveTriangleIndicesEXT[gtid] = GetPrimitive(primOffset, gtid);
 	}
 
-	if (gtid < meshlet.vertexCount)
+	if (gtid < meshlet.indexCount)
 	{
-		uint vertexIndicesOffset = meshDetails.vertexIndicesOffset + meshlet.vertexOffset;
+		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset + meshlet.indexOffset;
 
 		VertexOut pvOut = GetVertexAttributes(
-			modelDetails.modelIndex, GetVertexIndex(vertexIndicesOffset, gtid)
+			modelDetails.modelIndex,
+			meshDetails.vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
 		);
 
 		gl_MeshVerticesEXT[gtid].gl_Position = pvOut.glPosition;

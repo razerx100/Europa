@@ -28,8 +28,8 @@ struct Frustum
 
 struct Meshlet
 {
-	uint vertexCount;
-    uint vertexOffset;
+    uint indexCount;
+    uint indexOffset;
     uint primitiveCount;
     uint primitiveOffset;
 };
@@ -56,7 +56,7 @@ struct MeshletDetails
 	ConeNormal coneNormal;
 };
 
-struct MeshDetails
+struct MeshBundleDetails
 {
 	uint vertexOffset;
 	uint vertexIndicesOffset;
@@ -64,11 +64,18 @@ struct MeshDetails
 	uint meshletOffset;
 };
 
-struct ModelDetails
+struct MeshDetails
 {
 	uint meshletCount;
 	uint meshletOffset;
-	uint modelIndex;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
+struct ModelDetails
+{
+	MeshDetails meshDetails;
+	uint        modelIndex;
 };
 
 struct Payload
@@ -80,8 +87,8 @@ taskPayloadSharedEXT Payload s_Payload;
 
 layout(push_constant) uniform ConstantData
 {
-	ModelDetails modelDetails;
-	MeshDetails  meshDetails;
+	ModelDetails      modelDetails;
+	MeshBundleDetails meshBundleDetails;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
@@ -182,12 +189,13 @@ void main()
 
 	bool isMeshletVisible = false;
 
-	ModelDetails modelDetails = constantData.modelDetails;
-	MeshDetails meshDetails   = constantData.meshDetails;
+	ModelDetails modelDetails           = constantData.modelDetails;
+	MeshDetails  meshDetails            = modelDetails.meshDetails;
+	MeshBundleDetails meshBundleDetails = constantData.meshBundleDetails;
 
-	if (threadIndex < modelDetails.meshletCount)
+	if (threadIndex < meshDetails.meshletCount)
 	{
-		uint meshletOffset            = meshDetails.meshletOffset + modelDetails.meshletOffset;
+		uint meshletOffset            = meshBundleDetails.meshletOffset + meshDetails.meshletOffset;
 		MeshletDetails meshletDetails = meshletData.meshletDetails[meshletOffset + threadIndex];
 
 		ModelData modelDataInst       = modelData.models[modelDetails.modelIndex];
