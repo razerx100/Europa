@@ -77,6 +77,7 @@ struct MeshDetails
 {
 	uint meshletCount;
 	uint meshletOffset;
+	uint indexOffset;
 	uint primitiveOffset;
 	uint vertexOffset;
 };
@@ -191,7 +192,8 @@ void main(
 
 	if (gtid < meshlet.indexCount)
 	{
-		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset + meshlet.indexOffset;
+		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset
+			+ meshDetails.indexOffset + meshlet.indexOffset;
 
 		verts[gtid] = GetVertexAttributes(
 			modelDetails.modelIndex,

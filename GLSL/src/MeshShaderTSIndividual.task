@@ -68,6 +68,7 @@ struct MeshDetails
 {
 	uint meshletCount;
 	uint meshletOffset;
+	uint indexOffset;
 	uint primitiveOffset;
 	uint vertexOffset;
 };
