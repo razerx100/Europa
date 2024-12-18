@@ -81,14 +81,13 @@ struct MeshDetails
 	uint vertexOffset;
 };
 
-// The constants are laid out as vec4s. The padding here
-// isn't necessary but it would still be padded implicitly.
-// So, just doing it explicitly.
+// The constants are laid out as vec4s. Since ModelDetails
+// isn't aligned to 16 bytes, I have to either align it or
+// put it at the end.
 struct ModelDetails
 {
     MeshDetails meshDetails;
 	uint        modelIndex;
-	uint        padding[3];
 };
 
 struct Payload
@@ -98,8 +97,8 @@ struct Payload
 
 struct ConstantData
 {
-	ModelDetails      modelDetails;
 	MeshBundleDetails meshBundleDetails;
+	ModelDetails      modelDetails;
 };
 
 ConstantBuffer<ConstantData> constantData    : register(b0);
