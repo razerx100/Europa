@@ -195,9 +195,10 @@ void main(
 		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset
 			+ meshDetails.indexOffset + meshlet.indexOffset;
 
+        uint vertexOffset        = meshBundleDetails.vertexOffset + meshDetails.vertexOffset;
+
 		verts[gtid] = GetVertexAttributes(
-			modelDetails.modelIndex,
-			meshDetails.vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
+			modelDetails.modelIndex, vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
 		);
 	}
 }

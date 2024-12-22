@@ -245,9 +245,10 @@ void main()
 		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset
 			+ meshDetails.indexOffset + meshlet.indexOffset;
 
+        uint vertexOffset        = meshBundleDetails.vertexOffset + meshDetails.vertexOffset;
+
 		VertexOut pvOut = GetVertexAttributes(
-			modelDetails.modelIndex,
-			meshDetails.vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
+			modelDetails.modelIndex, vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
 		);
 
 		gl_MeshVerticesEXT[gtid].gl_Position = pvOut.glPosition;
