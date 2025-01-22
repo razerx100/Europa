@@ -2,8 +2,9 @@
 
 struct ModelData
 {
-	matrix modelMatrix;
-	float4 modelOffset; // materialIndex on the last component.
+    matrix modelMatrix;
+    matrix normalMatrix; // In world space.
+    float4 modelOffset; // materialIndex on the last component.
     uint   meshIndex;
     float  modelScale;
     uint   padding[2];
