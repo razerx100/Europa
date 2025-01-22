@@ -3,8 +3,8 @@
 
 layout(location = 0) in VetexIn
 {
-	vec3 viewFragmentPosition;
-	vec3 normal;
+	vec3 worldFragmentPosition;
+	vec3 worldNormal;
 	vec2 uv;
 	flat uint modelIndex;
     flat uint materialIndex;

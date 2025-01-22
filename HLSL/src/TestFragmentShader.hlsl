@@ -29,8 +29,8 @@ Texture2D g_textures[]                          : register(t2, space1);
 SamplerState samplerState                       : register(s0);
 
 float4 main(
-    float3 viewVertexPosition : ViewPosition,
-    float3 normal             : Normal,
+    float3 worldPixelPosition : WorldPosition,
+    float3 worldNormal        : WorldNormal,
     float2 uv                 : UV,
     uint   modelIndex         : ModelIndex,
     uint   materialIndex      : MaterialIndex

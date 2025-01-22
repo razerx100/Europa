@@ -6,8 +6,8 @@ layout(location = 2) in vec2 inUV;
 
 layout(location = 0) out VetexOut
 {
-	vec3 viewVertexPosition;
-	vec3 normal;
+	vec3 worldVertexPosition;
+	vec3 worldNormal;
 	vec2 uv;
 	uint modelIndex;
     uint materialIndex;
@@ -16,6 +16,7 @@ layout(location = 0) out VetexOut
 struct ModelData
 {
     mat4  modelMatrix;
+    mat4  normalMatrix; // In world space.
     vec4  modelOffset; // materialIndex on the last component.
     uint  meshIndex;
     float modelScale;
@@ -42,8 +43,8 @@ struct Vertex
 struct VertexOut
 {
 	vec4 glPosition;
-	vec3 viewVertexPosition;
-	vec3 normal;
+	vec3 worldVertexPosition;
+	vec3 worldNormal;
 	vec2 uv;
 	uint modelIndex;
     uint materialIndex;
@@ -68,38 +69,37 @@ layout(binding = 1) uniform CameraMatrices
 } camera;
 
 VertexOut GetVertexAttributes(
-    mat4 modelM, mat4 viewM, mat4 projectionM, mat4 viewNormalM, Vertex vertex,
+    mat4 modelM, mat4 viewM, mat4 projectionM, mat4 normalM, Vertex vertex,
 	vec3 modelOffset, uint modelIndex, uint materialIndex
 ) {
-    mat4 viewSpace          = viewM * modelM;
-    vec4 vertexPosition     = vec4(vertex.position + modelOffset, 1.0);
-    vec4 viewVertexPosition = viewSpace * vertexPosition;
+    vec4 vertexPosition      = vec4(vertex.position + modelOffset, 1.0);
+    vec4 worldVertexPosition = modelM * vertexPosition;
 
     VertexOut vout;
-    vout.glPosition         = projectionM * viewVertexPosition;
-    vout.viewVertexPosition = viewVertexPosition.xyz;
-    vout.normal             = mat3(viewNormalM) * vertex.normal;
-    vout.uv                 = vertex.uv;
-    vout.modelIndex         = modelIndex;
-    vout.materialIndex      = materialIndex;
+    vout.glPosition          = projectionM * viewM * modelM * vertexPosition;
+    vout.worldVertexPosition = worldVertexPosition.xyz;
+    vout.worldNormal         = mat3(normalM) * vertex.normal;
+    vout.uv                  = vertex.uv;
+    vout.modelIndex          = modelIndex;
+    vout.materialIndex       = materialIndex;
 
     return vout;
 }
 
 void SetOutputs(
-    mat4 modelM, mat4 viewM, mat4 projectionM, mat4 viewNormalM, Vertex vertex,
+    mat4 modelM, mat4 viewM, mat4 projectionM, mat4 normalM, Vertex vertex,
 	vec3 modelOffset, uint modelIndex, uint materialIndex
 ) {
 	VertexOut pVOut = GetVertexAttributes(
-		modelM, viewM, projectionM, viewNormalM, vertex, modelOffset, modelIndex, materialIndex
+		modelM, viewM, projectionM, normalM, vertex, modelOffset, modelIndex, materialIndex
 	);
 
-	gl_Position             = pVOut.glPosition;
-	vOut.uv                 = pVOut.uv;
-	vOut.modelIndex         = pVOut.modelIndex;
-	vOut.viewVertexPosition = pVOut.viewVertexPosition;
-	vOut.normal             = pVOut.normal;
-    vOut.materialIndex      = pVOut.materialIndex;
+	gl_Position              = pVOut.glPosition;
+	vOut.uv                  = pVOut.uv;
+	vOut.modelIndex          = pVOut.modelIndex;
+	vOut.worldVertexPosition = pVOut.worldVertexPosition;
+	vOut.worldNormal         = pVOut.worldNormal;
+	vOut.materialIndex       = pVOut.materialIndex;
 }
 
 void main()
@@ -111,14 +111,11 @@ void main()
 	vertex.normal   = inNormal;
 	vertex.uv       = inUV;
 
-    vec3 modelOffset      = model.modelOffset.xyz;
-    // Probably going to calculate this on the CPU later.
-    // mat4 viewNormalMatrix = transpose(inverse(model.modelMatrix * camera.view));
-    mat4 viewNormalMatrix = model.modelMatrix;
-    uint materialIndex    = floatBitsToUint(model.modelOffset.w);
+    vec3 modelOffset   = model.modelOffset.xyz;
+    uint materialIndex = floatBitsToUint(model.modelOffset.w);
 
 	SetOutputs(
-		model.modelMatrix, camera.view, camera.projection, viewNormalMatrix, vertex,
+		model.modelMatrix, camera.view, camera.projection, model.normalMatrix, vertex,
 		modelOffset, modelIndex.index, materialIndex
 	);
 }
