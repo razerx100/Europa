@@ -81,7 +81,7 @@ void main()
 
     vec2 offsetDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    outColour = diffuse * texture(
+    outColour = diffuse * lightColour * texture(
         g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV
     );
 }
