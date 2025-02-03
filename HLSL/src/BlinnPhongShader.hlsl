@@ -79,18 +79,27 @@ float4 main(
     ModelTexture textureInfo  = modelTextureData[modelIndex];
     UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
 
-    float4 ambientColour = float4(1.0, 1.0, 1.0, 1.0);
+    float4 ambientLightColour = float4(0.0, 0.0, 0.0, 0.0);
+    float4 diffuseLightColour = float4(1.0, 1.0, 1.0, 1.0);
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo info = lightInfo[0];
+        LightInfo info        = lightInfo[0];
 
-        ambientColour  = info.ambientStrength * info.lightColour;
+        ambientLightColour    = info.ambientStrength * info.lightColour;
+
+        float3 lightDirection = normalize(info.location.xyz - worldPixelPosition);
+
+        float diffuseStrength = saturate(dot(lightDirection.xyz, worldNormal));
+
+        diffuseLightColour    = diffuseStrength * info.lightColour;
+
+        ambientLightColour    = info.ambientStrength * info.lightColour;
     }
 
     float2 offsetDiffuseUV = uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    return diffuse * ambientColour * g_textures[textureInfo.diffuseTexIndex].Sample(
+    return diffuse * (ambientLightColour + diffuseLightColour) * g_textures[textureInfo.diffuseTexIndex].Sample(
         samplerState, offsetDiffuseUV
     );
 }

@@ -95,18 +95,26 @@ void main()
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
     UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
 
-    vec4 ambientColour = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ambientLightColour = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 diffuseLightColour = vec4(1.0, 1.0, 1.0, 1.0);
+
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo info = lightInfo.info[0];
+        LightInfo info        = lightInfo.info[0];
 
-        ambientColour  = info.ambientStrength * info.lightColour;
+        ambientLightColour    = info.ambientStrength * info.lightColour;
+
+        vec3 lightDirection   = normalize(info.location.xyz - vIn.worldFragmentPosition);
+
+        float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
+
+        diffuseLightColour    = diffuseStrength * info.lightColour;
     }
 
     vec2 offsetDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    outColour = diffuse * ambientColour * texture(
+    outColour = diffuse * (ambientLightColour + diffuseLightColour) * texture(
         g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV
     );
 }
