@@ -137,7 +137,7 @@ VertexOut GetVertexAttributes(
     VertexOut vout;
     vout.position            = mul(projectionM, mul(viewM, mul(modelM, vertexPosition)));
     vout.worldVertexPosition = worldVertexPosition.xyz;
-    vout.worldNormal         = mul((float3x3) normalM, vertex.normal);
+    vout.worldNormal         = normalize(mul((float3x3) normalM, vertex.normal));
     vout.uv                  = vertex.uv;
     vout.modelIndex          = modelIndex;
     vout.materialIndex       = materialIndex;

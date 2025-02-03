@@ -83,7 +83,7 @@ VertexOut GetVertexAttributes(
     VertexOut vout;
     vout.glPosition          = projectionM * viewM * modelM * vertexPosition;
     vout.worldVertexPosition = worldVertexPosition.xyz;
-    vout.worldNormal         = mat3(normalM) * vertex.normal;
+    vout.worldNormal         = normalize(mat3(normalM) * vertex.normal);
     vout.uv                  = vertex.uv;
     vout.modelIndex          = modelIndex;
     vout.materialIndex       = materialIndex;
