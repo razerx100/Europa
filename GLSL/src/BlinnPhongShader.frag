@@ -10,6 +10,16 @@ layout(location = 0) in VetexIn
     flat uint materialIndex;
 } vIn;
 
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
 struct Material
 {
     vec4  ambient;
@@ -41,6 +51,14 @@ struct LightInfo
 };
 
 layout(location = 0) out vec4 outColour;
+
+layout(binding = 1) uniform CameraMatrices
+{
+	mat4    view;
+	mat4    projection;
+	Frustum frustum;
+	vec4    viewPosition;
+} camera;
 
 layout(set = 1, binding = 0) readonly buffer ModelTextureData
 {

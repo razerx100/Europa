@@ -1,3 +1,21 @@
+struct Frustum
+{
+	float4 left;
+	float4 right;
+	float4 bottom;
+	float4 top;
+	float4 near;
+	float4 far;
+};
+
+struct CameraMatrices
+{
+    matrix  view;
+    matrix  projection;
+    Frustum frustum;
+    float4  viewPosition;
+};
+
 struct Material
 {
     float4 ambient;
@@ -38,6 +56,8 @@ StructuredBuffer<Material>     materialData     : register(t1, space1);
 Texture2D g_textures[]                          : register(t2, space1);
 
 SamplerState samplerState                       : register(s0);
+
+ConstantBuffer<CameraMatrices> cameraData       : register(b1);
 
 ConstantBuffer<LightCount> lightCount           : register(b0, space2);
 StructuredBuffer<LightInfo> lightInfo           : register(t1, space2);
