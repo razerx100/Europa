@@ -46,8 +46,11 @@ struct ModelTexture
 
 struct LightInfo
 {
-    vec4 location;
-    vec4 lightColour;
+    vec4  location;
+    vec4  lightColour;
+    float ambientStrength;
+    float padding[3];
+
 };
 
 layout(location = 0) out vec4 outColour;
@@ -92,14 +95,18 @@ void main()
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
     UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
 
-    vec4 lightColour = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ambientColour = vec4(1.0, 1.0, 1.0, 1.0);
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
-        lightColour = lightInfo.info[0].lightColour;
+    {
+        LightInfo info = lightInfo.info[0];
+
+        ambientColour  = info.ambientStrength * info.lightColour;
+    }
 
     vec2 offsetDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    outColour = diffuse * lightColour * texture(
+    outColour = diffuse * ambientColour * texture(
         g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV
     );
 }

@@ -44,6 +44,8 @@ struct LightInfo
 {
     float4 location;
     float4 lightColour;
+    float  ambientStrength;
+    float  padding[3];
 };
 
 struct LightCount
@@ -77,14 +79,18 @@ float4 main(
     ModelTexture textureInfo  = modelTextureData[modelIndex];
     UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
 
-    float4 lightColour = float4(1.0, 1.0, 1.0, 1.0);
+    float4 ambientColour = float4(1.0, 1.0, 1.0, 1.0);
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
-        lightColour = lightInfo[0].lightColour;
+    {
+        LightInfo info = lightInfo[0];
+
+        ambientColour  = info.ambientStrength * info.lightColour;
+    }
 
     float2 offsetDiffuseUV = uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    return diffuse * lightColour * g_textures[textureInfo.diffuseTexIndex].Sample(
+    return diffuse * ambientColour * g_textures[textureInfo.diffuseTexIndex].Sample(
         samplerState, offsetDiffuseUV
     );
 }
