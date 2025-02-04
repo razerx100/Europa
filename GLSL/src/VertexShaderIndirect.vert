@@ -60,18 +60,18 @@ layout(binding = 0) readonly buffer Modeldata
 	ModelData models[];
 } modelData;
 
-layout(binding = 1) readonly buffer ModelIndices
-{
-	uint indices[];
-} modelIndices;
-
-layout(binding = 2) uniform CameraMatrices
+layout(binding = 1) uniform CameraMatrices
 {
 	mat4    view;
 	mat4    projection;
 	Frustum frustum;
 	vec4    viewPosition;
 } camera;
+
+layout(binding = 2) readonly buffer ModelIndices
+{
+	uint indices[];
+} modelIndices;
 
 VertexOut GetVertexAttributes(
     mat4 modelM, mat4 viewM, mat4 projectionM, mat4 normalM, Vertex vertex,

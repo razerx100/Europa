@@ -126,33 +126,33 @@ layout(binding = 0) readonly buffer Modeldata
 	ModelData models[];
 } modelData;
 
-layout(binding = 1) readonly buffer MeshletData
-{
-	MeshletDetails meshletDetails[];
-} meshletData;
-
-layout(binding = 2) readonly buffer VertexData
-{
-	Vertex vertices[];
-} vertexData;
-
-layout(binding = 3) readonly buffer VertexIndexData
-{
-	uint vertexIndices[];
-} vertexIndexData;
-
-layout(binding = 4) readonly buffer PrimitiveIndexData
-{
-	uint primIndices[];
-} primIndexData;
-
-layout(binding = 5) uniform CameraMatrices
+layout(binding = 1) uniform CameraMatrices
 {
 	mat4    view;
 	mat4    projection;
 	Frustum frustum;
 	vec4    viewPosition;
 } camera;
+
+layout(binding = 2) readonly buffer MeshletData
+{
+	MeshletDetails meshletDetails[];
+} meshletData;
+
+layout(binding = 3) readonly buffer VertexData
+{
+	Vertex vertices[];
+} vertexData;
+
+layout(binding = 4) readonly buffer VertexIndexData
+{
+	uint vertexIndices[];
+} vertexIndexData;
+
+layout(binding = 5) readonly buffer PrimitiveIndexData
+{
+	uint primIndices[];
+} primIndexData;
 
 uvec3 UnpackPrimitive(uint primitive)
 {
