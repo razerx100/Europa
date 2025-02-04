@@ -49,8 +49,8 @@ struct LightInfo
     vec4  location;
     vec4  lightColour;
     float ambientStrength;
-    float padding[3];
-
+    float specularStrength;
+    float padding[2];
 };
 
 layout(location = 0) out vec4 outColour;
@@ -95,26 +95,39 @@ void main()
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
     UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
 
-    vec4 ambientLightColour = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 diffuseLightColour = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ambientLightColour  = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 specularLightColour = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 diffuseLightColour  = vec4(1.0, 1.0, 1.0, 1.0);
 
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
         LightInfo info        = lightInfo.info[0];
 
+        // Ambient
         ambientLightColour    = info.ambientStrength * info.lightColour;
 
+        // Diffuse
         vec3 lightDirection   = normalize(info.location.xyz - vIn.worldFragmentPosition);
 
         float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
 
         diffuseLightColour    = diffuseStrength * info.lightColour;
+
+        // Specular
+        vec3 viewDirection     = normalize(camera.viewPosition.xyz - vIn.worldFragmentPosition);
+
+        vec3 halfwayVec        = normalize(viewDirection + lightDirection);
+
+        float specularStrength = pow(max(dot(halfwayVec, vIn.worldNormal), 0.0), material.shininess);
+
+        specularLightColour    = info.specularStrength * specularStrength * info.lightColour;
     }
 
-    vec2 offsetDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
+    vec2 offsetDiffuseUV  = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    outColour = diffuse * (ambientLightColour + diffuseLightColour) * texture(
-        g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV
-    );
+    vec4 diffuseTexColour = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
+
+    outColour = diffuse * (ambientLightColour + specularLightColour + diffuseLightColour)
+                * diffuseTexColour;
 }

@@ -45,7 +45,8 @@ struct LightInfo
     float4 location;
     float4 lightColour;
     float  ambientStrength;
-    float  padding[3];
+    float  specularStrength;
+    float  padding[2];
 };
 
 struct LightCount
@@ -79,27 +80,40 @@ float4 main(
     ModelTexture textureInfo  = modelTextureData[modelIndex];
     UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
 
-    float4 ambientLightColour = float4(0.0, 0.0, 0.0, 0.0);
-    float4 diffuseLightColour = float4(1.0, 1.0, 1.0, 1.0);
+    float4 ambientLightColour  = float4(0.0, 0.0, 0.0, 0.0);
+    float4 specularLightColour = float4(0.0, 0.0, 0.0, 0.0);
+    float4 diffuseLightColour  = float4(1.0, 1.0, 1.0, 1.0);
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
         LightInfo info        = lightInfo[0];
 
+        // Ambient
         ambientLightColour    = info.ambientStrength * info.lightColour;
 
+        // Diffuse
         float3 lightDirection = normalize(info.location.xyz - worldPixelPosition);
 
         float diffuseStrength = saturate(dot(lightDirection.xyz, worldNormal));
 
         diffuseLightColour    = diffuseStrength * info.lightColour;
 
-        ambientLightColour    = info.ambientStrength * info.lightColour;
+        // Specular
+        float3 viewDirection   = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
+
+        float3 halfwayVec      = normalize(viewDirection + lightDirection);
+
+        float specularStrength = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
+
+        specularLightColour    = info.specularStrength * specularStrength * info.lightColour;
     }
 
-    float2 offsetDiffuseUV = uv * modelUVInfo.scale + modelUVInfo.offset;
+    float2 offsetDiffuseUV  = uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    return diffuse * (ambientLightColour + diffuseLightColour) * g_textures[textureInfo.diffuseTexIndex].Sample(
+    float4 diffuseTexColour = g_textures[textureInfo.diffuseTexIndex].Sample(
         samplerState, offsetDiffuseUV
     );
+
+    return diffuse * (ambientLightColour + specularLightColour + diffuseLightColour)
+            * diffuseTexColour;
 }
