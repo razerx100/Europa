@@ -117,7 +117,7 @@ bool IsModelInsideFrustum(uint threadIndex)
     uint meshOffset         = perMeshBundleData[meshBundleIndex].meshOffset;
     ModelData modelDataInst = modelData[modelIndex];
 
-    float4 modelOffset = float4(modelDataInst.modelOffset.xyz, 0.0);
+    float4 modelOffset = float4(modelDataInst.modelOffset.xyz, 1.0);
     matrix world       = modelDataInst.modelMatrix;
 
     // Local space
