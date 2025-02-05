@@ -173,11 +173,11 @@ VertexOut GetVertexAttributes(
     mat4 modelM, mat4 viewM, mat4 projectionM, mat4 normalM, Vertex vertex,
 	vec3 modelOffset, uint modelIndex, uint materialIndex
 ) {
-    vec4 vertexPosition      = vec4(vertex.position + modelOffset, 1.0);
-    vec4 worldVertexPosition = modelM * vertexPosition;
+    vec4 worldVertexPosition = modelM * vec4(vertex.position, 1.0);
+    worldVertexPosition     += vec4(modelOffset, 1.0);
 
     VertexOut vout;
-    vout.glPosition          = projectionM * viewM * modelM * vertexPosition;
+    vout.glPosition          = projectionM * viewM * worldVertexPosition;
     vout.worldVertexPosition = worldVertexPosition.xyz;
     vout.worldNormal         = normalize(mat3(normalM) * vertex.normal);
     vout.uv                  = vertex.uv;

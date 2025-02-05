@@ -189,7 +189,8 @@ bool IsModelInsideFrustum(uint threadIndex)
     vec3 scaledExtents     = vec3(newX, newY, newZ);
     // Transform the centre to be in the World space, since the frustum planes are also
     // in the world space.
-    vec4 transformedCentre = world * (centre + modelOffset);
+    vec4 transformedCentre = world * centre;
+    transformedCentre     += modelOffset;
 
     Frustum frustum = camera.frustum;
 

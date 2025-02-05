@@ -126,7 +126,8 @@ bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
 
     float4 sphereBV          = meshletDetails.sphereBV;
     float scaledRadius       = sphereBV.w * modelDataInst.modelScale;
-    float4 transformedCentre = mul(world, float4(sphereBV.xyz + modelDataInst.modelOffset.xyz, 1.0));
+    float4 transformedCentre = mul(world, float4(sphereBV.xyz, 1.0));
+    transformedCentre       += float4(modelDataInst.modelOffset.xyz, 1.0);
 
     Frustum frustum = cameraData.frustum;
 

@@ -131,11 +131,11 @@ VertexOut GetVertexAttributes(
     matrix modelM, matrix viewM, matrix projectionM, matrix normalM, Vertex vertex,
 	float3 modelOffset, uint modelIndex, uint materialIndex
 ) {
-    float4 vertexPosition      = float4(vertex.position + modelOffset, 1.0);
-    float4 worldVertexPosition = mul(modelM, vertexPosition);
+    float4 worldVertexPosition = mul(modelM, float4(vertex.position, 1.0));
+    worldVertexPosition       += float4(modelOffset, 1.0);
 
     VertexOut vout;
-    vout.position            = mul(projectionM, mul(viewM, mul(modelM, vertexPosition)));
+    vout.position            = mul(projectionM, mul(viewM, worldVertexPosition));
     vout.worldVertexPosition = worldVertexPosition.xyz;
     vout.worldNormal         = normalize(mul((float3x3) normalM, vertex.normal));
     vout.uv                  = vertex.uv;
