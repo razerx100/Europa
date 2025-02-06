@@ -86,35 +86,38 @@ layout(set = 2, binding = 1) readonly buffer LightInfoData
 
 void main()
 {
-    vec4 diffuse      = vec4(1.0, 1.0, 1.0, 1.0);
-
-    Material material = materialData.materials[vIn.materialIndex];
+    Material material        = materialData.materials[vIn.materialIndex];
 
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
-    UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
+    UVInfo diffuseUVInfo     = textureInfo.diffuseTexUVInfo;
+    UVInfo specularUVInfo    = textureInfo.specularTexUVInfo;
+
+    vec2 offsetDiffuseUV   = vIn.uv * diffuseUVInfo.scale + diffuseUVInfo.offset;
+
+    vec4 diffuseTexColour  = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
+
+    vec2 offsetSpecularUV  = vIn.uv * specularUVInfo.scale + specularUVInfo.offset;
+
+    vec4 specularTexColour = texture(g_textures[textureInfo.specularTexIndex], offsetSpecularUV);
 
     vec4 ambientColour  = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 specularColour = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 diffuseColour  = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 diffuseColour  = diffuseTexColour;
 
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo light        = lightInfo.info[0];
-
-        vec2 offsetDiffuseUV   = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
-
-        vec4 diffuseTexColour  = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
+        LightInfo light = lightInfo.info[0];
 
         // Ambient
-        ambientColour          = light.ambient * diffuseTexColour * material.ambient;
+        ambientColour = light.ambient * diffuseTexColour * material.ambient;
 
         // Diffuse
-        vec3 lightDirection    = normalize(light.location.xyz - vIn.worldFragmentPosition);
+        vec3 lightDirection   = normalize(light.location.xyz - vIn.worldFragmentPosition);
 
-        float diffuseStrength  = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
+        float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
 
-        diffuseColour          = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
+        diffuseColour         = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
         vec3 viewDirection     = normalize(camera.viewPosition.xyz - vIn.worldFragmentPosition);
@@ -123,7 +126,7 @@ void main()
 
         float specularStrength = pow(max(dot(halfwayVec, vIn.worldNormal), 0.0), material.shininess);
 
-        specularColour         =  specularStrength * light.specular * material.specular;
+        specularColour =  specularStrength * light.specular * specularTexColour * material.specular;
     }
 
     outColour = diffuseColour + ambientColour + specularColour;

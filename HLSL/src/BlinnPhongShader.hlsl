@@ -71,45 +71,51 @@ float4 main(
     uint   modelIndex         : ModelIndex,
     uint   materialIndex      : MaterialIndex
 ) : SV_Target {
-    float4 diffuse    = float4(1.0, 1.0, 1.0, 1.0);
+    Material material        = materialData[materialIndex];
 
-    Material material = materialData[materialIndex];
+    ModelTexture textureInfo = modelTextureData[modelIndex];
+    UVInfo diffuseUVInfo     = textureInfo.diffuseTexUVInfo;
+    UVInfo specularUVInfo    = textureInfo.specularTexUVInfo;
 
-    ModelTexture textureInfo  = modelTextureData[modelIndex];
-    UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
+    float2 offsetDiffuseUV   = uv * diffuseUVInfo.scale + diffuseUVInfo.offset;
+
+    float4 diffuseTexColour  = g_textures[textureInfo.diffuseTexIndex].Sample(
+        samplerState, offsetDiffuseUV
+    );
+
+    float2 offsetSpecularUV  = uv * specularUVInfo.scale + specularUVInfo.offset;
+
+    float4 specularTexColour = g_textures[textureInfo.specularTexIndex].Sample(
+        samplerState, offsetSpecularUV
+    );
 
     float4 ambientColour  = float4(0.0, 0.0, 0.0, 0.0);
     float4 specularColour = float4(0.0, 0.0, 0.0, 0.0);
-    float4 diffuseColour  = float4(1.0, 1.0, 1.0, 1.0);
+    float4 diffuseColour  = diffuseTexColour;
+
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo light         = lightInfo[0];
-
-        float2 offsetDiffuseUV  = uv * modelUVInfo.scale + modelUVInfo.offset;
-
-        float4 diffuseTexColour = g_textures[textureInfo.diffuseTexIndex].Sample(
-            samplerState, offsetDiffuseUV
-        );
+        LightInfo light = lightInfo[0];
 
         // Ambient
-        ambientColour           = light.ambient * diffuseTexColour * material.ambient;
+        ambientColour = light.ambient * diffuseTexColour * material.ambient;
 
         // Diffuse
-        float3 lightDirection   = normalize(light.location.xyz - worldPixelPosition);
+        float3 lightDirection = normalize(light.location.xyz - worldPixelPosition);
 
-        float diffuseStrength   = saturate(dot(lightDirection.xyz, worldNormal));
+        float diffuseStrength = saturate(dot(lightDirection.xyz, worldNormal));
 
-        diffuseColour           = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
+        diffuseColour         = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
-        float3 viewDirection    = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
+        float3 viewDirection   = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
 
-        float3 halfwayVec       = normalize(viewDirection + lightDirection);
+        float3 halfwayVec      = normalize(viewDirection + lightDirection);
 
-        float specularStrength  = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
+        float specularStrength = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
 
-        specularColour          = specularStrength * light.specular * material.specular;
+        specularColour = specularStrength * light.specular * specularTexColour * material.specular;
     }
 
     return diffuseColour + ambientColour + specularColour;
