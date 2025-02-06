@@ -100,21 +100,21 @@ void main()
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo light       = lightInfo.info[0];
+        LightInfo light        = lightInfo.info[0];
+
+        vec2 offsetDiffuseUV   = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
+
+        vec4 diffuseTexColour  = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
 
         // Ambient
-        ambientColour         = light.ambient * material.ambient;
+        ambientColour          = light.ambient * diffuseTexColour * material.ambient;
 
         // Diffuse
-        vec3 lightDirection   = normalize(light.location.xyz - vIn.worldFragmentPosition);
+        vec3 lightDirection    = normalize(light.location.xyz - vIn.worldFragmentPosition);
 
-        float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
+        float diffuseStrength  = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
 
-        vec2 offsetDiffuseUV  = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
-
-        vec4 diffuseTexColour = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
-
-        diffuseColour         = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
+        diffuseColour          = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
         vec3 viewDirection     = normalize(camera.viewPosition.xyz - vIn.worldFragmentPosition);

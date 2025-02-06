@@ -86,33 +86,31 @@ float4 main(
     {
         LightInfo light         = lightInfo[0];
 
-        // Ambient
-        ambientColour           = light.ambient * material.ambient;
-
-        // Diffuse
-        float3 lightDirection   = normalize(light.location.xyz - worldPixelPosition);
-
-        float diffuseStrength   = saturate(dot(lightDirection.xyz, worldNormal));
-
         float2 offsetDiffuseUV  = uv * modelUVInfo.scale + modelUVInfo.offset;
 
         float4 diffuseTexColour = g_textures[textureInfo.diffuseTexIndex].Sample(
             samplerState, offsetDiffuseUV
         );
 
+        // Ambient
+        ambientColour           = light.ambient * diffuseTexColour * material.ambient;
+
+        // Diffuse
+        float3 lightDirection   = normalize(light.location.xyz - worldPixelPosition);
+
+        float diffuseStrength   = saturate(dot(lightDirection.xyz, worldNormal));
 
         diffuseColour           = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
-        float3 viewDirection   = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
+        float3 viewDirection    = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
 
-        float3 halfwayVec      = normalize(viewDirection + lightDirection);
+        float3 halfwayVec       = normalize(viewDirection + lightDirection);
 
-        float specularStrength = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
+        float specularStrength  = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
 
-        specularColour         = specularStrength * light.specular + material.specular;
+        specularColour          = specularStrength * light.specular * material.specular;
     }
-
 
     return diffuseColour + ambientColour + specularColour;
 }
