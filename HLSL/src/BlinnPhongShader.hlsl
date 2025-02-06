@@ -43,10 +43,9 @@ struct ModelTexture
 struct LightInfo
 {
     float4 location;
-    float4 lightColour;
-    float  ambientStrength;
-    float  specularStrength;
-    float  padding[2];
+    float4 ambient;
+    float4 diffuse;
+    float4 specular;
 };
 
 struct LightCount
@@ -75,28 +74,34 @@ float4 main(
     float4 diffuse    = float4(1.0, 1.0, 1.0, 1.0);
 
     Material material = materialData[materialIndex];
-    diffuse           = material.diffuse;
 
     ModelTexture textureInfo  = modelTextureData[modelIndex];
     UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
 
-    float4 ambientLightColour  = float4(0.0, 0.0, 0.0, 0.0);
-    float4 specularLightColour = float4(0.0, 0.0, 0.0, 0.0);
-    float4 diffuseLightColour  = float4(1.0, 1.0, 1.0, 1.0);
+    float4 ambientColour  = float4(0.0, 0.0, 0.0, 0.0);
+    float4 specularColour = float4(0.0, 0.0, 0.0, 0.0);
+    float4 diffuseColour  = float4(1.0, 1.0, 1.0, 1.0);
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo info        = lightInfo[0];
+        LightInfo light         = lightInfo[0];
 
         // Ambient
-        ambientLightColour    = info.ambientStrength * info.lightColour;
+        ambientColour           = light.ambient * material.ambient;
 
         // Diffuse
-        float3 lightDirection = normalize(info.location.xyz - worldPixelPosition);
+        float3 lightDirection   = normalize(light.location.xyz - worldPixelPosition);
 
-        float diffuseStrength = saturate(dot(lightDirection.xyz, worldNormal));
+        float diffuseStrength   = saturate(dot(lightDirection.xyz, worldNormal));
 
-        diffuseLightColour    = diffuseStrength * info.lightColour;
+        float2 offsetDiffuseUV  = uv * modelUVInfo.scale + modelUVInfo.offset;
+
+        float4 diffuseTexColour = g_textures[textureInfo.diffuseTexIndex].Sample(
+            samplerState, offsetDiffuseUV
+        );
+
+
+        diffuseColour           = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
         float3 viewDirection   = normalize(cameraData.viewPosition.xyz - worldPixelPosition);
@@ -105,15 +110,9 @@ float4 main(
 
         float specularStrength = pow(saturate(dot(halfwayVec, worldNormal)), material.shininess);
 
-        specularLightColour    = info.specularStrength * specularStrength * info.lightColour;
+        specularColour         = specularStrength * light.specular + material.specular;
     }
 
-    float2 offsetDiffuseUV  = uv * modelUVInfo.scale + modelUVInfo.offset;
 
-    float4 diffuseTexColour = g_textures[textureInfo.diffuseTexIndex].Sample(
-        samplerState, offsetDiffuseUV
-    );
-
-    return diffuse * (ambientLightColour + specularLightColour + diffuseLightColour)
-            * diffuseTexColour;
+    return diffuseColour + ambientColour + specularColour;
 }

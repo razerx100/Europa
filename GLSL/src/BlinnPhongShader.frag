@@ -46,11 +46,10 @@ struct ModelTexture
 
 struct LightInfo
 {
-    vec4  location;
-    vec4  lightColour;
-    float ambientStrength;
-    float specularStrength;
-    float padding[2];
+    vec4 location;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
 };
 
 layout(location = 0) out vec4 outColour;
@@ -90,29 +89,32 @@ void main()
     vec4 diffuse      = vec4(1.0, 1.0, 1.0, 1.0);
 
     Material material = materialData.materials[vIn.materialIndex];
-    diffuse           = material.diffuse;
 
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
     UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
 
-    vec4 ambientLightColour  = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 specularLightColour = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 diffuseLightColour  = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ambientColour  = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 specularColour = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 diffuseColour  = vec4(1.0, 1.0, 1.0, 1.0);
 
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
-        LightInfo info        = lightInfo.info[0];
+        LightInfo light       = lightInfo.info[0];
 
         // Ambient
-        ambientLightColour    = info.ambientStrength * info.lightColour;
+        ambientColour         = light.ambient * material.ambient;
 
         // Diffuse
-        vec3 lightDirection   = normalize(info.location.xyz - vIn.worldFragmentPosition);
+        vec3 lightDirection   = normalize(light.location.xyz - vIn.worldFragmentPosition);
 
         float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
 
-        diffuseLightColour    = diffuseStrength * info.lightColour;
+        vec2 offsetDiffuseUV  = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
+
+        vec4 diffuseTexColour = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
+
+        diffuseColour         = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
 
         // Specular
         vec3 viewDirection     = normalize(camera.viewPosition.xyz - vIn.worldFragmentPosition);
@@ -121,13 +123,8 @@ void main()
 
         float specularStrength = pow(max(dot(halfwayVec, vIn.worldNormal), 0.0), material.shininess);
 
-        specularLightColour    = info.specularStrength * specularStrength * info.lightColour;
+        specularColour         =  specularStrength * light.specular * material.specular;
     }
 
-    vec2 offsetDiffuseUV  = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
-
-    vec4 diffuseTexColour = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
-
-    outColour = diffuse * (ambientLightColour + specularLightColour + diffuseLightColour)
-                * diffuseTexColour;
+    outColour = diffuseColour + ambientColour + specularColour;
 }
