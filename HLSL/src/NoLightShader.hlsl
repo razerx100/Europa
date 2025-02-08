@@ -1,12 +1,3 @@
-struct Material
-{
-    float4 ambient;
-    float4 diffuse;
-    float4 specular;
-    float  shininess;
-    float  padding[3];
-};
-
 struct UVInfo
 {
     float2 offset;
@@ -23,8 +14,7 @@ struct ModelTexture
 };
 
 StructuredBuffer<ModelTexture> modelTextureData : register(t0, space1);
-StructuredBuffer<Material>     materialData     : register(t1, space1);
-Texture2D g_textures[]                          : register(t2, space1);
+Texture2D g_textures[]                          : register(t1, space1);
 
 SamplerState samplerState                       : register(s0);
 
@@ -35,17 +25,10 @@ float4 main(
     uint   modelIndex         : ModelIndex,
     uint   materialIndex      : MaterialIndex
 ) : SV_Target {
-    float4 diffuse    = float4(1.0, 1.0, 1.0, 1.0);
+    ModelTexture textureInfo = modelTextureData[modelIndex];
+    UVInfo diffuseUVInfo     = textureInfo.diffuseTexUVInfo;
 
-    Material material = materialData[materialIndex];
-    diffuse           = material.diffuse;
+    float2 offsetDiffuseUV   = uv * diffuseUVInfo.scale + diffuseUVInfo.offset;
 
-    ModelTexture textureInfo  = modelTextureData[modelIndex];
-    UVInfo modelUVInfo        = textureInfo.diffuseTexUVInfo;
-
-    float2 offsetDiffuseUV = uv * modelUVInfo.scale + modelUVInfo.offset;
-
-    return diffuse * g_textures[textureInfo.diffuseTexIndex].Sample(
-        samplerState, offsetDiffuseUV
-    );
+    return g_textures[textureInfo.diffuseTexIndex].Sample(samplerState, offsetDiffuseUV);
 }

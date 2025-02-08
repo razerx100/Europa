@@ -67,12 +67,7 @@ layout(set = 1, binding = 0) readonly buffer ModelTextureData
 	ModelTexture textureData[];
 } modelTextureData;
 
-layout(set = 1, binding = 1) readonly buffer Materialdata
-{
-	Material materials[];
-} materialData;
-
-layout(set = 1, binding = 2) uniform sampler2D g_textures[];
+layout(set = 1, binding = 1) uniform sampler2D g_textures[];
 
 layout(set = 2, binding = 0) uniform LightCount
 {
@@ -83,6 +78,11 @@ layout(set = 2, binding = 1) readonly buffer LightInfoData
 {
     LightInfo info[];
 } lightInfo;
+
+layout(set = 2, binding = 2) readonly buffer Materialdata
+{
+	Material materials[];
+} materialData;
 
 void main()
 {

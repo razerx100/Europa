@@ -54,8 +54,7 @@ struct LightCount
 };
 
 StructuredBuffer<ModelTexture> modelTextureData : register(t0, space1);
-StructuredBuffer<Material>     materialData     : register(t1, space1);
-Texture2D g_textures[]                          : register(t2, space1);
+Texture2D g_textures[]                          : register(t1, space1);
 
 SamplerState samplerState                       : register(s0);
 
@@ -63,6 +62,7 @@ ConstantBuffer<CameraMatrices> cameraData       : register(b1);
 
 ConstantBuffer<LightCount> lightCount           : register(b0, space2);
 StructuredBuffer<LightInfo> lightInfo           : register(t1, space2);
+StructuredBuffer<Material> materialData         : register(t2, space2);
 
 float4 main(
     float3 worldPixelPosition : WorldPosition,

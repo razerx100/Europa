@@ -10,15 +10,6 @@ layout(location = 0) in VetexIn
     flat uint materialIndex;
 } vIn;
 
-struct Material
-{
-    vec4  ambient;
-    vec4  diffuse;
-    vec4  specular;
-    float shininess;
-    float padding[3];
-};
-
 struct UVInfo
 {
     vec2 offset;
@@ -41,26 +32,14 @@ layout(set = 1, binding = 0) readonly buffer ModelTextureData
 	ModelTexture textureData[];
 } modelTextureData;
 
-layout(set = 1, binding = 1) readonly buffer Materialdata
-{
-	Material materials[];
-} materialData;
-
-layout(set = 1, binding = 2) uniform sampler2D g_textures[];
+layout(set = 1, binding = 1) uniform sampler2D g_textures[];
 
 void main()
 {
-    vec4 diffuse      = vec4(1.0, 1.0, 1.0, 1.0);
-
-    Material material = materialData.materials[vIn.materialIndex];
-    diffuse           = material.diffuse;
-
     ModelTexture textureInfo = modelTextureData.textureData[vIn.modelIndex];
-    UVInfo modelUVInfo       = textureInfo.diffuseTexUVInfo;
+    UVInfo diffuseUVInfo     = textureInfo.diffuseTexUVInfo;
 
-    vec2 offsetDiffuseUV = vIn.uv * modelUVInfo.scale + modelUVInfo.offset;
+    vec2 offsetDiffuseUV     = vIn.uv * diffuseUVInfo.scale + diffuseUVInfo.offset;
 
-    outColour = diffuse * texture(
-        g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV
-    );
+    outColour = texture(g_textures[textureInfo.diffuseTexIndex], offsetDiffuseUV);
 }
