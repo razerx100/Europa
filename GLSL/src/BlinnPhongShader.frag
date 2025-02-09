@@ -117,15 +117,22 @@ vec4 CalculatePointLight(
     LightInfo light, vec4 diffuseTex, vec4 specularTex, Material material,
     vec3 worldFragmentPosition, vec3 worldNormal
 ) {
+    // 1 / kc + kl * d + kq * d * d
+    vec3 ray        = light.location.xyz - worldFragmentPosition;
+    float rayLength = length(ray);
+
+    float attenuation = 1.0 /
+        (light.constantC + light.linearC * rayLength + light.quadratic * rayLength * rayLength);
+
     // Ambient
-    vec4 ambientColour     = light.ambient * diffuseTex * material.ambient;
+    vec4 ambientColour = light.ambient * diffuseTex * material.ambient * attenuation;
 
     // Diffuse
-    vec3 lightDirection    = normalize(light.location.xyz - worldFragmentPosition);
+    vec3 lightDirection   = normalize(ray);
 
-    float diffuseStrength  = max(dot(lightDirection, worldNormal), 0.0);
+    float diffuseStrength = max(dot(lightDirection, worldNormal), 0.0);
 
-    vec4 diffuseColour     = diffuseStrength * light.diffuse * diffuseTex * material.diffuse;
+    vec4 diffuseColour = diffuseStrength * light.diffuse * diffuseTex * material.diffuse * attenuation;
 
     // Specular
     vec3 viewDirection     = normalize(camera.viewPosition.xyz - worldFragmentPosition);
@@ -134,7 +141,8 @@ vec4 CalculatePointLight(
 
     float specularStrength = pow(max(dot(halfwayVec, worldNormal), 0.0), material.shininess);
 
-    vec4 specularColour    =  specularStrength * light.specular * specularTex * material.specular;
+    vec4 specularColour =
+        specularStrength * light.specular * specularTex * material.specular * attenuation;
 
     return diffuseColour + ambientColour + specularColour;
 }
