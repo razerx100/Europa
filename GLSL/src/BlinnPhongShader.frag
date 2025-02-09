@@ -177,7 +177,7 @@ vec4 CalculateSpotLight(
     float innerCutoff      = light.ambient.w;
     float outerCutoff      = light.specular.w;
 
-    float epsilon          = outerCutoff - innerCutoff;
+    float epsilon          = innerCutoff - outerCutoff;
 
     // If the fragment is inside the inner cutoff then the intensity will be 1.0. It will be
     // varied between the inner and outer cutoff and 0.0 outside.
@@ -216,25 +216,24 @@ void main()
 
     vec4 specularTexColour = texture(g_textures[textureInfo.specularTexIndex], offsetSpecularUV);
 
-    vec4 outputColour = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 outputColour = vec4(0.0, 0.0, 0.0, 0.0);
 
-    // For now gonna do a check and only use the first light if available
-    if (lightCount.count != 0)
+    for (uint index = 0; index < lightCount.count; ++index)
     {
-        LightInfo light = lightInfo.info[0];
+        LightInfo light = lightInfo.info[index];
 
         if (light.type == 0)
-            outputColour = CalculateDirectionalLight(
+            outputColour += CalculateDirectionalLight(
                 light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
                 vIn.worldNormal, light.direction.xyz
             );
         else if (light.type == 1)
-            outputColour = CalculatePointLight(
+            outputColour += CalculatePointLight(
                 light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
                 vIn.worldNormal
             );
         else if (light.type == 2)
-            outputColour = CalculateSpotLight(
+            outputColour += CalculateSpotLight(
                 light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
                 vIn.worldNormal
             );

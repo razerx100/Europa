@@ -158,7 +158,7 @@ float4 CalculateSpotLight(
     float innerCutoff     = light.ambient.w;
     float outerCutoff     = light.specular.w;
 
-    float epsilon         = outerCutoff - innerCutoff;
+    float epsilon         = innerCutoff - outerCutoff;
 
     // If the pixel is inside the inner cutoff then the intensity will be 1.0. It will be
     // varied between the inner and outer cutoff and 0.0 outside.
@@ -207,24 +207,23 @@ float4 main(
         samplerState, offsetSpecularUV
     );
 
-    float4 outputColour = float4(1.0, 1.0, 1.0, 1.0);
+    float4 outputColour = float4(0.0, 0.0, 0.0, 0.0);
 
-    // For now gonna do a check and only use the first light if available
-    if (lightCount.count != 0)
+    for (uint index = 0; index < lightCount.count; ++index)
     {
-        LightInfo light = lightInfo[0];
+        LightInfo light = lightInfo[index];
 
         if (light.type == 0)
-            outputColour = CalculateDirectionalLight(
+            outputColour += CalculateDirectionalLight(
                 light, diffuseTexColour, specularTexColour, material, worldPixelPosition,
                 worldNormal, light.direction.xyz
             );
         else if (light.type == 1)
-            outputColour = CalculatePointLight(
+            outputColour += CalculatePointLight(
                 light, diffuseTexColour, specularTexColour, material, worldPixelPosition, worldNormal
             );
         else if (light.type == 2)
-            outputColour = CalculateSpotLight(
+            outputColour += CalculateSpotLight(
                 light, diffuseTexColour, specularTexColour, material, worldPixelPosition, worldNormal
             );
     }
