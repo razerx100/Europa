@@ -46,10 +46,15 @@ struct ModelTexture
 
 struct LightInfo
 {
-    vec4 location;
-    vec4 ambient;
-    vec4 diffuse;
-    vec4 specular;
+    vec4  location; // Direction if it is a directional light
+    vec4  ambient;
+    vec4  diffuse;
+    vec4  specular;
+    // Attenuation co-efficient
+    float constantC; // Inner Cutoff if Spotlight
+    float linearC; // Outer Cutoff if Spotlight
+    float quadratic;
+    uint  type; // 0 for Directional, 1 Point, 1 Spotlight
 };
 
 layout(location = 0) out vec4 outColour;
@@ -84,6 +89,82 @@ layout(set = 2, binding = 2) readonly buffer Materialdata
 	Material materials[];
 } materialData;
 
+vec4 CalculateDirectionalLight(
+    LightInfo light, vec4 diffuseTex, vec4 specularTex, Material material,
+    vec3 worldFragmentPosition, vec3 worldNormal, vec3 lightDirection
+) {
+    // Ambient
+    vec4 ambientColour     = light.ambient * diffuseTex * material.ambient;
+
+    // Diffuse
+    float diffuseStrength  = max(dot(lightDirection, worldNormal), 0.0);
+
+    vec4 diffuseColour     = diffuseStrength * light.diffuse * diffuseTex * material.diffuse;
+
+    // Specular
+    vec3 viewDirection     = normalize(camera.viewPosition.xyz - worldFragmentPosition);
+
+    vec3 halfwayVec        = normalize(viewDirection + lightDirection);
+
+    float specularStrength = pow(max(dot(halfwayVec, worldNormal), 0.0), material.shininess);
+
+    vec4 specularColour    =  specularStrength * light.specular * specularTex * material.specular;
+
+    return diffuseColour + ambientColour + specularColour;
+}
+
+vec4 CalculatePointLight(
+    LightInfo light, vec4 diffuseTex, vec4 specularTex, Material material,
+    vec3 worldFragmentPosition, vec3 worldNormal
+) {
+    // Ambient
+    vec4 ambientColour     = light.ambient * diffuseTex * material.ambient;
+
+    // Diffuse
+    vec3 lightDirection    = normalize(light.location.xyz - worldFragmentPosition);
+
+    float diffuseStrength  = max(dot(lightDirection, worldNormal), 0.0);
+
+    vec4 diffuseColour     = diffuseStrength * light.diffuse * diffuseTex * material.diffuse;
+
+    // Specular
+    vec3 viewDirection     = normalize(camera.viewPosition.xyz - worldFragmentPosition);
+
+    vec3 halfwayVec        = normalize(viewDirection + lightDirection);
+
+    float specularStrength = pow(max(dot(halfwayVec, worldNormal), 0.0), material.shininess);
+
+    vec4 specularColour    =  specularStrength * light.specular * specularTex * material.specular;
+
+    return diffuseColour + ambientColour + specularColour;
+}
+
+vec4 CalculateSpotLight(
+    LightInfo light, vec4 diffuseTex, vec4 specularTex, Material material,
+    vec3 worldFragmentPosition, vec3 worldNormal
+) {
+    // Ambient
+    vec4 ambientColour     = light.ambient * diffuseTex * material.ambient;
+
+    // Diffuse
+    vec3 lightDirection    = normalize(light.location.xyz - worldFragmentPosition);
+
+    float diffuseStrength  = max(dot(lightDirection, worldNormal), 0.0);
+
+    vec4 diffuseColour     = diffuseStrength * light.diffuse * diffuseTex * material.diffuse;
+
+    // Specular
+    vec3 viewDirection     = normalize(camera.viewPosition.xyz - worldFragmentPosition);
+
+    vec3 halfwayVec        = normalize(viewDirection + lightDirection);
+
+    float specularStrength = pow(max(dot(halfwayVec, worldNormal), 0.0), material.shininess);
+
+    vec4 specularColour    =  specularStrength * light.specular * specularTex * material.specular;
+
+    return diffuseColour + ambientColour + specularColour;
+}
+
 void main()
 {
     Material material        = materialData.materials[vIn.materialIndex];
@@ -100,34 +181,29 @@ void main()
 
     vec4 specularTexColour = texture(g_textures[textureInfo.specularTexIndex], offsetSpecularUV);
 
-    vec4 ambientColour  = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 specularColour = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 diffuseColour  = diffuseTexColour;
+    vec4 outputColour = vec4(1.0, 1.0, 1.0, 1.0);
 
     // For now gonna do a check and only use the first light if available
     if (lightCount.count != 0)
     {
         LightInfo light = lightInfo.info[0];
 
-        // Ambient
-        ambientColour = light.ambient * diffuseTexColour * material.ambient;
-
-        // Diffuse
-        vec3 lightDirection   = normalize(light.location.xyz - vIn.worldFragmentPosition);
-
-        float diffuseStrength = max(dot(lightDirection.xyz, vIn.worldNormal), 0.0);
-
-        diffuseColour         = diffuseStrength * light.diffuse * diffuseTexColour * material.diffuse;
-
-        // Specular
-        vec3 viewDirection     = normalize(camera.viewPosition.xyz - vIn.worldFragmentPosition);
-
-        vec3 halfwayVec        = normalize(viewDirection + lightDirection);
-
-        float specularStrength = pow(max(dot(halfwayVec, vIn.worldNormal), 0.0), material.shininess);
-
-        specularColour =  specularStrength * light.specular * specularTexColour * material.specular;
+        if (light.type == 0)
+            outputColour = CalculateDirectionalLight(
+                light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
+                vIn.worldNormal, light.location.xyz
+            );
+        else if (light.type == 1)
+            outputColour = CalculatePointLight(
+                light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
+                vIn.worldNormal
+            );
+        else if (light.type == 2)
+            outputColour = CalculateSpotLight(
+                light, diffuseTexColour, specularTexColour, material, vIn.worldFragmentPosition,
+                vIn.worldNormal
+            );
     }
 
-    outColour = diffuseColour + ambientColour + specularColour;
+    outColour = outputColour;
 }
