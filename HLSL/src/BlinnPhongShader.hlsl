@@ -42,7 +42,8 @@ struct ModelTexture
 
 struct LightInfo
 {
-    float4 location; // Direction if it is a directional light
+    float4 location; // Used for point and spotlight.
+    float4 direction; // Used for directional and spotlight.
     float4 ambient;
     float4 diffuse;
     float4 specular;
@@ -188,7 +189,7 @@ float4 main(
         if (light.type == 0)
             outputColour = CalculateDirectionalLight(
                 light, diffuseTexColour, specularTexColour, material, worldPixelPosition,
-                worldNormal, light.location.xyz
+                worldNormal, light.direction.xyz
             );
         else if (light.type == 1)
             outputColour = CalculatePointLight(
