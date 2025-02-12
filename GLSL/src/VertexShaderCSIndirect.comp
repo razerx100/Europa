@@ -49,6 +49,7 @@ struct PerModelData
 {
     uint modelBundleIndex;
     uint modelIndex;
+    bool isVisible;
 };
 
 struct PerMeshData
@@ -208,13 +209,14 @@ void main()
 
     if (threadIndex < constantData.modelCount)
     {
-        uint modelBundleIndex = perModelData.data[threadIndex].modelBundleIndex;
-        CullingData cData     = cullingData.data[modelBundleIndex];
+        PerModelData pModelData = perModelData.data[threadIndex];
+        uint modelBundleIndex   = pModelData.modelBundleIndex;
+        CullingData cData       = cullingData.data[modelBundleIndex];
 
-        uint commandEnd       = cData.commandOffset + cData.commandCount;
+        uint commandEnd         = cData.commandOffset + cData.commandCount;
 
         // Only process the models which are in the range of the bundle's commands.
-        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
+        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd && pModelData.isVisible)
         {
             if (IsModelInsideFrustum(threadIndex))
             {
@@ -237,7 +239,7 @@ void main()
                 // Since the models can be culled in any order, there is no way to tell which one
                 // was culled from the vertex shader. So, will have write the model indices of
                 // the models which weren't culled.
-                uint modelIndex                             = perModelData.data[threadIndex].modelIndex;
+                uint modelIndex                             = pModelData.modelIndex;
                 outputModelIndices.indices[modelWriteIndex] = modelIndex;
             }
         }

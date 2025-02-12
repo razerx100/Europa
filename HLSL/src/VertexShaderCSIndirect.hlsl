@@ -50,6 +50,7 @@ struct AABB
 struct PerModelData
 {
     uint modelBundleIndex;
+    bool isVisible;
 };
 
 struct PerMeshData
@@ -174,13 +175,14 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     if (threadIndex < constantData.modelCount)
     {
-        uint modelBundleIndex = perModelData[threadIndex].modelBundleIndex;
-        CullingData cData     = cullingData[modelBundleIndex];
+        PerModelData pModelData = perModelData[threadIndex];
+        uint modelBundleIndex   = pModelData.modelBundleIndex;
+        CullingData cData       = cullingData[modelBundleIndex];
 
-        uint commandEnd       = cData.commandOffset + cData.commandCount;
+        uint commandEnd         = cData.commandOffset + cData.commandCount;
 
         // Only process the models which are in the range of the bundle's commands.
-        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd)
+        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd && pModelData.isVisible)
         {
             if (IsModelInsideFrustum(threadIndex))
             {
