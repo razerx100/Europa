@@ -73,7 +73,7 @@ struct CameraMatrices
 
 struct ConstantData
 {
-    uint modelCount;
+    uint allocatedModelCount;
 };
 
 ConstantBuffer<ConstantData> constantData             : register(b0);
@@ -173,7 +173,7 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint threadIndex = groupId * threadBlockSize + groupIndex;
 
-    if (threadIndex < constantData.modelCount)
+    if (threadIndex < constantData.allocatedModelCount)
     {
         PerModelData pModelData = perModelData[threadIndex];
         uint modelBundleIndex   = pModelData.modelBundleIndex;
