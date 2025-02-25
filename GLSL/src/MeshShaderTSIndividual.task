@@ -89,8 +89,8 @@ taskPayloadSharedEXT Payload s_Payload;
 
 layout(push_constant) uniform ConstantData
 {
-	ModelDetails      modelDetails;
 	MeshBundleDetails meshBundleDetails;
+	ModelDetails      modelDetails;
 } constantData;
 
 layout(binding = 0) readonly buffer Modeldata
