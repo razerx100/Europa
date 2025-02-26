@@ -53,14 +53,14 @@ struct PerModelData
     bool isVisible;
 };
 
-struct PerMeshData
-{
-    AABB aabb;
-};
-
 struct PerModelBundleData
 {
     uint meshBundleIndex;
+};
+
+struct PerMeshData
+{
+    AABB aabb;
 };
 
 struct PerMeshBundleData

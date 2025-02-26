@@ -35,10 +35,11 @@ struct IndirectArguments
     DrawArguments drawArguments;
 };
 
-struct CullingData
+struct PerPipelineData
 {
-    uint commandCount;
-    uint commandOffset;
+	uint modelCount;
+	uint modelOffset;
+	uint modelBundleIndex;
 };
 
 struct AABB
@@ -49,8 +50,13 @@ struct AABB
 
 struct PerModelData
 {
-    uint modelBundleIndex;
+    uint pipelineIndex;
     bool isVisible;
+};
+
+struct PerModelBundleData
+{
+    uint meshBundleIndex;
 };
 
 struct PerMeshData
@@ -76,19 +82,19 @@ struct ConstantData
     uint allocatedModelCount;
 };
 
-ConstantBuffer<ConstantData> constantData             : register(b0);
-ConstantBuffer<CameraMatrices> cameraData             : register(b1);
+ConstantBuffer<ConstantData> constantData               : register(b0);
+ConstantBuffer<CameraMatrices> cameraData               : register(b1);
 
-StructuredBuffer<ModelData> modelData                 : register(t0);
-StructuredBuffer<IndirectArguments> inputData         : register(t1);
-StructuredBuffer<CullingData> cullingData             : register(t2);
-StructuredBuffer<PerModelData> perModelData           : register(t3);
-StructuredBuffer<PerMeshData> perMeshData             : register(t4);
-StructuredBuffer<PerMeshBundleData> perMeshBundleData : register(t5);
-StructuredBuffer<uint> meshBundleIndices              : register(t6);
+StructuredBuffer<ModelData> modelData                   : register(t0);
+StructuredBuffer<IndirectArguments> inputData           : register(t1);
+StructuredBuffer<PerPipelineData> perPipelineData       : register(t2);
+StructuredBuffer<PerModelData> perModelData             : register(t3);
+StructuredBuffer<PerMeshData> perMeshData               : register(t4);
+StructuredBuffer<PerMeshBundleData> perMeshBundleData   : register(t5);
+StructuredBuffer<PerModelBundleData> perModelBundleData : register(t6);
 
-RWStructuredBuffer<IndirectArguments> outputData      : register(u0);
-RWStructuredBuffer<uint> outputCounters               : register(u1);
+RWStructuredBuffer<IndirectArguments> outputData        : register(u0);
+RWStructuredBuffer<uint> outputCounters                 : register(u1);
 
 bool IsOnOrForwardPlane(float4 plane, float3 extents, float4 centre)
 {
@@ -113,8 +119,9 @@ bool IsModelInsideFrustum(uint threadIndex)
     PerModelData perModelDataInst = perModelData[threadIndex];
 
     uint modelIndex         = inputData[threadIndex].modelIndex;
-    uint modelBundleIndex   = perModelDataInst.modelBundleIndex;
-    uint meshBundleIndex    = meshBundleIndices[modelBundleIndex];
+    uint pipelineIndex      = perModelDataInst.pipelineIndex;
+    uint modelBundleIndex   = perPipelineData[pipelineIndex].modelBundleIndex;;
+    uint meshBundleIndex    = perModelBundleData[modelBundleIndex].meshBundleIndex;
     uint meshOffset         = perMeshBundleData[meshBundleIndex].meshOffset;
     ModelData modelDataInst = modelData[modelIndex];
 
@@ -176,13 +183,13 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     if (threadIndex < constantData.allocatedModelCount)
     {
         PerModelData pModelData = perModelData[threadIndex];
-        uint modelBundleIndex   = pModelData.modelBundleIndex;
-        CullingData cData       = cullingData[modelBundleIndex];
+        uint pipelineIndex      = pModelData.pipelineIndex;
+        PerPipelineData pData   = perPipelineData[pipelineIndex];
 
-        uint commandEnd         = cData.commandOffset + cData.commandCount;
+        uint modelEnd           = pData.modelOffset + pData.modelCount;
 
         // Only process the models which are in the range of the bundle's commands.
-        if (cData.commandOffset <= threadIndex && threadIndex < commandEnd && pModelData.isVisible)
+        if (pData.modelOffset <= threadIndex && threadIndex < modelEnd && pModelData.isVisible)
         {
             if (IsModelInsideFrustum(threadIndex))
             {
@@ -191,7 +198,7 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 // own counter and arguments range.
                 uint oldCounterValue = 0u;
 
-                InterlockedAdd(outputCounters[modelBundleIndex], 1, oldCounterValue);
+                InterlockedAdd(outputCounters[pipelineIndex], 1, oldCounterValue);
 
                 // The argument buffer for this model bundle should start at the commandOffset.
                 // Since each argument represent each model, we should put the arguments of the
@@ -201,7 +208,7 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 // threads could try to write to the same index. But because of the atomicAdd
                 // the old value should be unique for this bundle's range. The argument assignment
                 // isn't atomic though.
-                uint modelWriteIndex        = cData.commandOffset + oldCounterValue;
+                uint modelWriteIndex        = pData.modelOffset + oldCounterValue;
                 outputData[modelWriteIndex] = inputData[threadIndex];
             }
         }
