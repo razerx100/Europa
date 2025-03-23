@@ -58,7 +58,14 @@ struct LightInfo
     uint  type; // 0 for Directional, 1 Point, 1 Spotlight
 };
 
-layout(location = 0) out vec4 outColour;
+struct FragmentOut
+{
+    vec4  accumulation;
+    float revealage;
+};
+
+layout(location = 0) out vec4 outAccumulation;
+layout(location = 1) out float outRevealage;
 
 layout(binding = 1) uniform CameraMatrices
 {
@@ -242,7 +249,28 @@ vec4 CalculateOutputColour()
     return outputColour;
 }
 
+FragmentOut CalculateWeight(vec4 outputColour, float depthPosition)
+{
+    // The general-purpose equation from the paper.
+    float a = min(1.0, outputColour.a * 10.0) + 0.01;
+    float b = 1.0 - depthPosition * 0.9;
+
+    float w = clamp(pow(a, 3.0) * 1e8 * pow(b, 3.0), 1e-2, 3e3);
+
+    FragmentOut fragmentOut;
+
+    fragmentOut.accumulation = outputColour * w;
+    fragmentOut.revealage    = outputColour.a;
+
+    return fragmentOut;
+}
+
 void main()
 {
-    outColour = CalculateOutputColour();
+    vec4 outColour = CalculateOutputColour();
+
+    FragmentOut fragmentOut = CalculateWeight(outColour, gl_FragCoord.z);
+
+    outAccumulation = fragmentOut.accumulation;
+    outRevealage    = fragmentOut.revealage;
 }
