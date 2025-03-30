@@ -1,0 +1,216 @@
+#version 460
+
+#extension GL_EXT_mesh_shader            : require
+#extension GL_KHR_shader_subgroup_ballot : require
+
+const uint TASK_GROUP_SIZE = 32;
+
+layout(local_size_x = TASK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+struct ModelData
+{
+    mat4  modelMatrix;
+    mat4  normalMatrix;  // In world space.
+    vec4  modelOffset; // materialIndex on the last component.
+    uint  meshIndex;
+    float modelScale;
+    uint  padding[2];
+};
+
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
+struct Meshlet
+{
+    uint indexCount;
+    uint indexOffset;
+    uint primitiveCount;
+    uint primitiveOffset;
+};
+
+struct ConeNormal
+{
+	uint  packedCone;
+	float apexOffset;
+};
+
+// Scalar Float4. vec4 is a packed vector and would enforce 16bytes alignment
+struct Float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
+struct MeshletDetails
+{
+	Meshlet    meshlet;
+	Float4     sphereBV;
+	ConeNormal coneNormal;
+};
+
+struct MeshBundleDetails
+{
+	uint vertexOffset;
+	uint vertexIndicesOffset;
+	uint primitiveIndicesOffset;
+	uint meshletOffset;
+};
+
+struct MeshDetails
+{
+	uint meshletCount;
+	uint meshletOffset;
+	uint indexOffset;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
+struct ModelDetails
+{
+	MeshDetails meshDetails;
+	uint        modelIndex;
+};
+
+struct Payload
+{
+    uint meshletIndices[TASK_GROUP_SIZE];
+};
+
+taskPayloadSharedEXT Payload s_Payload;
+
+layout(push_constant) uniform ConstantData
+{
+	MeshBundleDetails meshBundleDetails;
+	ModelDetails      modelDetails;
+} constantData;
+
+layout(binding = 0) readonly buffer Modeldata
+{
+	ModelData models[];
+} modelData;
+
+layout(binding = 1) uniform CameraMatrices
+{
+	mat4    view;
+	mat4    projection;
+	Frustum frustum;
+	vec4    viewPosition;
+} camera;
+
+layout(binding = 2) readonly buffer MeshletData
+{
+	MeshletDetails meshletDetails[];
+} meshletData;
+
+bool IsConeDegenerate(uint packedCone)
+{
+    return (packedCone >> 24) == 255;
+}
+
+vec4 Float4ToVec4(Float4 float4)
+{
+	return vec4(float4.x, float4.y, float4.z, float4.w);
+}
+
+vec4 UnpackCone(uint packedCone)
+{
+    vec4 unpackedCone;
+
+    unpackedCone.x = float((packedCone >> 0) & 255);
+    unpackedCone.y = float((packedCone >> 8) & 255);
+    unpackedCone.z = float((packedCone >> 16) & 255);
+    unpackedCone.w = float((packedCone >> 24) & 255);
+
+    unpackedCone   = unpackedCone / 255.0;
+
+    unpackedCone.xyz = unpackedCone.xyz * 2.0 - 1.0;
+
+    return unpackedCone;
+}
+
+bool IsOnOrForwardPlane(vec4 plane, vec4 centre, float radius)
+{
+    return -radius <= dot(plane, centre);
+}
+
+bool IsMeshletVisible(ModelData modelDataInst, MeshletDetails meshletDetails)
+{
+    mat4 world             = modelDataInst.modelMatrix;
+
+    vec4 sphereBV          = Float4ToVec4(meshletDetails.sphereBV);
+    float scaledRadius     = sphereBV.w * modelDataInst.modelScale;
+    vec4 transformedCentre = world * vec4(sphereBV.xyz, 1.0);
+    transformedCentre     += vec4(modelDataInst.modelOffset.xyz, 1.0);
+
+    Frustum frustum = camera.frustum;
+
+    bool isInsideFrustum =
+        IsOnOrForwardPlane(frustum.left,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.right,  transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.bottom, transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.top,    transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.near,   transformedCentre, scaledRadius)
+        && IsOnOrForwardPlane(frustum.far,    transformedCentre, scaledRadius);
+
+	if (!isInsideFrustum)
+        return false;
+
+	ConeNormal coneNormal = meshletDetails.coneNormal;
+
+	if (IsConeDegenerate(coneNormal.packedCone))
+	    return true; // Cone is degenerate, the spread is more than 90 degrees.
+
+	vec4 unpackedCone = UnpackCone(coneNormal.packedCone);
+
+	vec3 coneAxis     = normalize(world * vec4(unpackedCone.xyz, 0)).xyz;
+
+	vec3 apex = transformedCentre.xyz - coneAxis * coneNormal.apexOffset * modelDataInst.modelScale;
+
+	vec3 viewPosition  = camera.viewPosition.xyz;
+	vec3 viewDirection = normalize(viewPosition - apex);
+
+	// The w component has the -cos(angle + 90) degree
+	// This is the minimum dot product on the negative axis, from which all the triangles are backface.
+	if (dot(viewDirection, -coneAxis) > unpackedCone.w)
+	    return false;
+
+	return true;
+}
+
+void main()
+{
+	uint threadIndex = gl_WorkGroupID.x * TASK_GROUP_SIZE + gl_LocalInvocationIndex;
+
+	bool isMeshletVisible = false;
+
+	ModelDetails modelDetails = constantData.modelDetails;
+	MeshDetails  meshDetails  = modelDetails.meshDetails;
+
+	if (threadIndex < meshDetails.meshletCount)
+	{
+		isMeshletVisible = true;
+	}
+
+	uvec4 validVotes = subgroupBallot(isMeshletVisible);
+
+	if (isMeshletVisible)
+	{
+		uint currentIndex = subgroupBallotExclusiveBitCount(validVotes);
+
+		s_Payload.meshletIndices[currentIndex] = threadIndex;
+	}
+
+	uint validCount = subgroupBallotBitCount(validVotes);
+
+	// The arguments are taken on the first invocation.
+	EmitMeshTasksEXT(validCount, 1, 1);
+}

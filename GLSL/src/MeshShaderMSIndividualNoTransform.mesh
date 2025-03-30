@@ -1,0 +1,254 @@
+#version 460
+
+#extension GL_EXT_mesh_shader : require
+
+const uint TASK_GROUP_SIZE = 32;
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout(max_vertices = 64, max_primitives = 126) out;
+layout(triangles) out;
+
+struct Payload
+{
+    uint meshletIndices[TASK_GROUP_SIZE];
+};
+
+taskPayloadSharedEXT Payload s_Payload;
+
+layout(location = 0) out VetexOutput
+{
+	vec3 worldVertexPosition;
+	vec3 worldNormal;
+	vec2 uv;
+	uint modelIndex;
+	uint materialIndex;
+} vOut[];
+
+struct ModelData
+{
+    mat4  modelMatrix;
+    mat4  normalMatrix; // In world space.
+    vec4  modelOffset; // materialIndex on the last component.
+    uint  meshIndex;
+    float modelScale;
+    uint  padding[2];
+};
+
+struct Frustum
+{
+	vec4 left;
+	vec4 right;
+	vec4 bottom;
+	vec4 top;
+	vec4 near;
+	vec4 far;
+};
+
+struct Meshlet
+{
+    uint indexCount;
+    uint indexOffset;
+    uint primitiveCount;
+    uint primitiveOffset;
+};
+
+struct Vertex
+{
+	vec3  position;
+	vec3  normal;
+	vec2  uv;
+	float padding[2];
+};
+
+struct VertexOut
+{
+	vec4 glPosition;
+	vec3 worldVertexPosition;
+	vec3 worldNormal;
+	vec2 uv;
+	uint modelIndex;
+	uint materialIndex;
+};
+
+struct ConeNormal
+{
+	uint  packedCone;
+	float apexOffset;
+};
+
+// Scalar Float4. vec4 is a packed vector and would enforce 16bytes alignment
+struct Float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
+struct MeshletDetails
+{
+	Meshlet    meshlet;
+	Float4     sphereBV;
+	ConeNormal coneNormal;
+};
+
+struct MeshBundleDetails
+{
+	uint vertexOffset;
+	uint vertexIndicesOffset;
+	uint primitiveIndicesOffset;
+	uint meshletOffset;
+};
+
+struct MeshDetails
+{
+	uint meshletCount;
+	uint meshletOffset;
+	uint indexOffset;
+	uint primitiveOffset;
+	uint vertexOffset;
+};
+
+struct ModelDetails
+{
+	MeshDetails meshDetails;
+	uint        modelIndex;
+};
+
+layout(push_constant) uniform ConstantData
+{
+	MeshBundleDetails meshBundleDetails;
+	ModelDetails      modelDetails;
+} constantData;
+
+layout(binding = 0) readonly buffer Modeldata
+{
+	ModelData models[];
+} modelData;
+
+layout(binding = 1) uniform CameraMatrices
+{
+	mat4    view;
+	mat4    projection;
+	Frustum frustum;
+	vec4    viewPosition;
+} camera;
+
+layout(binding = 2) readonly buffer MeshletData
+{
+	MeshletDetails meshletDetails[];
+} meshletData;
+
+layout(binding = 3) readonly buffer VertexData
+{
+	Vertex vertices[];
+} vertexData;
+
+layout(binding = 4) readonly buffer VertexIndexData
+{
+	uint vertexIndices[];
+} vertexIndexData;
+
+layout(binding = 5) readonly buffer PrimitiveIndexData
+{
+	uint primIndices[];
+} primIndexData;
+
+uvec3 UnpackPrimitive(uint primitive)
+{
+	return uvec3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
+}
+
+uvec3 GetPrimitive(uint primOffset, uint index)
+{
+	return UnpackPrimitive(primIndexData.primIndices[primOffset + index]);
+}
+
+uint GetVertexIndex(uint vertexIndicesOffset, uint localIndex)
+{
+	return vertexIndexData.vertexIndices[vertexIndicesOffset + localIndex];
+}
+
+VertexOut GetVertexAttributes(
+    mat4 modelM, mat4 viewM, mat4 projectionM, mat4 normalM, Vertex vertex,
+	vec3 modelOffset, uint modelIndex, uint materialIndex
+) {
+    vec4 localVertexPosition = vec4(vertex.position + modelOffset, 1.0);
+
+    VertexOut vout;
+    vout.glPosition          = localVertexPosition;
+    vout.worldVertexPosition = localVertexPosition.xyz;
+    vout.worldNormal         = vertex.normal;
+    vout.uv                  = vertex.uv;
+    vout.modelIndex          = modelIndex;
+    vout.materialIndex       = materialIndex;
+
+    return vout;
+}
+
+VertexOut GetVertexAttributes(uint modelIndex, uint vertexIndex)
+{
+    Vertex vertex         = vertexData.vertices[vertexIndex];
+    const ModelData model = modelData.models[modelIndex];
+
+    vec3 modelOffset   = model.modelOffset.xyz;
+    uint materialIndex = floatBitsToUint(model.modelOffset.w);
+
+	return GetVertexAttributes(
+		model.modelMatrix, camera.view, camera.projection, model.normalMatrix, vertex,
+		modelOffset, modelIndex, materialIndex
+	);
+}
+
+void SetOutputs(uint threadIndex, VertexOut pvOut)
+{
+	vOut[threadIndex].uv                  = pvOut.uv;
+	vOut[threadIndex].modelIndex          = pvOut.modelIndex;
+	vOut[threadIndex].worldVertexPosition = pvOut.worldVertexPosition;
+	vOut[threadIndex].worldNormal         = pvOut.worldNormal;
+	vOut[threadIndex].materialIndex       = pvOut.materialIndex;
+}
+
+void main()
+{
+	const uint gid  = gl_WorkGroupID.x;
+	const uint gtid = gl_LocalInvocationID.x;
+
+	MeshBundleDetails meshBundleDetails = constantData.meshBundleDetails;
+	ModelDetails modelDetails           = constantData.modelDetails;
+	MeshDetails meshDetails             = modelDetails.meshDetails;
+
+	uint meshletIndex = s_Payload.meshletIndices[gid];
+
+	if (meshletIndex >= meshDetails.meshletCount)
+		return;
+
+	uint meshletOffset = meshBundleDetails.meshletOffset + meshDetails.meshletOffset;
+	Meshlet meshlet    = meshletData.meshletDetails[meshletOffset + meshletIndex].meshlet;
+
+	SetMeshOutputsEXT(meshlet.indexCount, meshlet.primitiveCount);
+
+	if (gtid < meshlet.primitiveCount)
+	{
+		uint primOffset = meshBundleDetails.primitiveIndicesOffset
+			+ meshDetails.primitiveOffset + meshlet.primitiveOffset;
+
+		gl_PrimitiveTriangleIndicesEXT[gtid] = GetPrimitive(primOffset, gtid);
+	}
+
+	if (gtid < meshlet.indexCount)
+	{
+		uint vertexIndicesOffset = meshBundleDetails.vertexIndicesOffset
+			+ meshDetails.indexOffset + meshlet.indexOffset;
+
+        uint vertexOffset        = meshBundleDetails.vertexOffset + meshDetails.vertexOffset;
+
+		VertexOut pvOut = GetVertexAttributes(
+			modelDetails.modelIndex, vertexOffset + GetVertexIndex(vertexIndicesOffset, gtid)
+		);
+
+		gl_MeshVerticesEXT[gtid].gl_Position = pvOut.glPosition;
+
+		SetOutputs(gtid, pvOut);
+	}
+}
