@@ -50,7 +50,7 @@ struct PerModelData
 {
     uint pipelineIndex;
     uint modelIndex;
-    bool isVisible;
+    uint modelFlags;
 };
 
 struct PerModelBundleData
@@ -130,6 +130,20 @@ layout(binding = 10) uniform CameraMatrices
     Frustum frustum;
     vec4    viewPosition;
 } camera;
+
+bool IsModelVisible(uint modelFlags)
+{
+    uint visiblityFlagBit = 1;
+
+    return (modelFlags & visiblityFlagBit) == visiblityFlagBit;
+}
+
+bool ShouldSkipCulling(uint modelFlags)
+{
+    uint skipCullingFlagBit = 2;
+
+    return (modelFlags & skipCullingFlagBit) == skipCullingFlagBit;
+}
 
 bool IsOnOrForwardPlane(vec4 plane, vec3 extents, vec4 centre)
 {
@@ -221,11 +235,12 @@ void main()
         PerPipelineData pData   = perPipelineData.data[pipelineIndex];
 
         uint modelEnd           = pData.modelOffset + pData.modelCount;
+        uint modelFlags         = pModelData.modelFlags;
 
         // Only process the models which are in the range of the bundle's commands.
-        if (pData.modelOffset <= threadIndex && threadIndex < modelEnd && pModelData.isVisible)
+        if (pData.modelOffset <= threadIndex && threadIndex < modelEnd && IsModelVisible(modelFlags))
         {
-            if (IsModelInsideFrustum(threadIndex))
+            if (ShouldSkipCulling(modelFlags) || IsModelInsideFrustum(threadIndex))
             {
                 // If the model is inside the frustum, increase the counter by 1.
                 // Using the bundle index to index, because each bundle should have its

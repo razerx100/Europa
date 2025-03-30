@@ -51,7 +51,7 @@ struct AABB
 struct PerModelData
 {
     uint pipelineIndex;
-    bool isVisible;
+    uint modelFlags;
 };
 
 struct PerModelBundleData
@@ -95,6 +95,20 @@ StructuredBuffer<PerModelBundleData> perModelBundleData : register(t6);
 
 RWStructuredBuffer<IndirectArguments> outputData        : register(u0);
 RWStructuredBuffer<uint> outputCounters                 : register(u1);
+
+bool IsModelVisible(uint modelFlags)
+{
+    uint visiblityFlagBit = 1;
+
+    return (modelFlags & visiblityFlagBit) == visiblityFlagBit;
+}
+
+bool ShouldSkipCulling(uint modelFlags)
+{
+    uint skipCullingFlagBit = 2;
+
+    return (modelFlags & skipCullingFlagBit) == skipCullingFlagBit;
+}
 
 bool IsOnOrForwardPlane(float4 plane, float3 extents, float4 centre)
 {
@@ -187,11 +201,12 @@ void main(uint groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         PerPipelineData pData   = perPipelineData[pipelineIndex];
 
         uint modelEnd           = pData.modelOffset + pData.modelCount;
+        uint modelFlags         = pModelData.modelFlags;
 
         // Only process the models which are in the range of the bundle's commands.
-        if (pData.modelOffset <= threadIndex && threadIndex < modelEnd && pModelData.isVisible)
+        if (pData.modelOffset <= threadIndex && threadIndex < modelEnd && IsModelVisible(modelFlags))
         {
-            if (IsModelInsideFrustum(threadIndex))
+            if (ShouldSkipCulling(modelFlags) || IsModelInsideFrustum(threadIndex))
             {
                 // If the model is inside the frustum, increase the counter by 1.
                 // Using the bundle index to index, because each bundle should have its
