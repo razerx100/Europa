@@ -27,8 +27,8 @@ float4 main(
     uint   materialIndex      : MaterialIndex,
     float4 position           : SV_Position
 ) : SV_Target {
-    // The last argument should be the mip level.
-    int3 coordinates = int3(int2(position.xy), 1);
+    // The last argument should be the mip index.
+    int3 coordinates = int3(int2(position.xy), 0);
 
     // The coordinates aren't normalised yet, so can't use sample.
     float revealage  = g_textures[renderTargetData.revealageRTIndex].Load(coordinates).r;
