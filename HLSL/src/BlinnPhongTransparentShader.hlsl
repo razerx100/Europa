@@ -243,7 +243,7 @@ PixelOut CalculateWeight(float4 outputColour, float depthPosition)
 
     PixelOut pixelOut;
 
-    pixelOut.accumulation = float4(outputColour.rgb * outputColour.a, outputColour.a) * w;
+    pixelOut.accumulation = outputColour * w;
     pixelOut.revealage    = outputColour.a;
 
     return pixelOut;

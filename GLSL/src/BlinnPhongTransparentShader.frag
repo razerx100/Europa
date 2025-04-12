@@ -259,7 +259,7 @@ FragmentOut CalculateWeight(vec4 outputColour, float depthPosition)
 
     FragmentOut fragmentOut;
 
-    fragmentOut.accumulation = vec4(outputColour.rgb * outputColour.a, outputColour.a) * w;
+    fragmentOut.accumulation = outputColour * w;
     fragmentOut.revealage    = outputColour.a;
 
     return fragmentOut;
